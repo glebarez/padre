@@ -52,7 +52,7 @@ func encode(data []byte) string {
 	return encReplacer.Replace(b64)
 }
 
-var payload = "TyS1hgsPVo0OMOmoDDOFuui8eQtwF9jEcVrlv-rbKjhBkDKfw-LVyq3SMyHFLQFGXjbUx6-XiYCCStcbzhAdXrE4omZKkmxR91!y-CRt2Py7IU02r!1rrgy3ZMEj1jpRGU5kMF5sdiTxpO2hgvaGvSyumasd0q6V06ofaMuYtvEpQdE5RCda4osINnRfoSaGkt50UDkv-bmlW4uIJ!LoyA~~"
+var payload = "3R0HL9AY9jPqU!NPf5QXWc2rBrkY4NYA1N2bMiig0nvpH!1dEZMcV!AeFs5-1D-0bqgXylBlR5v-qsTEA25kpiRlpNCVwaR5uK-CEwpjOXeCmQOA28-!3iYI9vA3HgodUq75GhE3!hplU86dhyAFF5NPsUcTB09VTbdwmlA5aWghidadBTLrXboN2zBSMPutyz9DIFA8x6F!ZQbFRfFALA~~"
 
 func main() {
 	var plaintext string
@@ -73,13 +73,24 @@ func main() {
 	// the very last first block is IV
 
 	// loop for every discovered block
-	for blockOffset := 0; blockOffset < blockCount-1; blockOffset++ {
+	for blockOffset := 8; blockOffset < blockCount-1; blockOffset++ {
 		// loop for every byte position inside the discovered block
 		ciphertext := cipher[blockOffset*blockLen : (blockOffset+2)*blockLen]
 		plaintext += string(revealBlock(ciphertext))
 	}
 
-	fmt.Println(plaintext)
+	//fmt.Println(plaintext)
+}
+
+func println(data []byte) {
+	for _, d := range data {
+		if d >= 20 && d <= 126 {
+			fmt.Printf("%s", string(d))
+		} else {
+			fmt.Print(" ")
+		}
+	}
+	fmt.Println("")
 }
 
 // reveals a single block of plaintext
@@ -91,7 +102,7 @@ func revealBlock(ciphertext []byte) []byte {
 	for pos := blockLen - 1; pos >= 0; pos-- {
 		// reveal the byte
 		block[pos] = revealByte(ciphertext, pos)
-		fmt.Println(string(block))
+		println(block)
 
 		// adjust padding for the next shot
 		for i := pos; i < blockLen; i++ {
@@ -112,7 +123,7 @@ func revealByte(ciphertext []byte, pos int) byte {
 	chanPara := make(chan byte, parallel)
 	chanErr := make(chan error, 1)
 	chanDone := make(chan byte, 256)
-	var done int
+	var done = 0
 	validCipherByte := ciphertext[pos]
 
 	//try every possible byte value
@@ -150,19 +161,19 @@ func revealByte(ciphertext []byte, pos int) byte {
 
 	for {
 		select {
-		case <-chanDone:
-			done++
-			if done == 256 {
-				log.Fatal("Failed")
-			}
-		case err := <-chanErr:
-			log.Fatal(err)
 		case found := <-chanVal:
 			// miodify the ciphertext with valid byte
 			ciphertext[pos] = found
 
 			// return the plaintext value
 			return found ^ (blockLen - byte(pos)) ^ validCipherByte
+		case err := <-chanErr:
+			log.Fatal(err)
+		case <-chanDone:
+			done++
+			if done == 256 {
+				log.Fatal("Failed")
+			}
 		case <-ticker.C:
 			//fmt.Print("t")
 			break
@@ -194,5 +205,9 @@ func testRequest(ctx context.Context, data []byte) (bool, error) {
 	defer resp.Body.Close()
 
 	// determine padding error
-	return !strings.Contains(string(body), errorString), nil
+	if !strings.Contains(string(body), errorString) {
+		//fmt.Println(string(body))
+		return true, nil
+	}
+	return false, nil
 }
