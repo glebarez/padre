@@ -7,8 +7,9 @@ import (
 
 const blockLen = 16
 
-var baseURL = "http://34.74.105.127/2edee56f24/?post=%s"
-var cipherEncoded = "9P3GWr4PEd8F1e2AR-HopshWrUfNiLWFX2gkVlI1BDLlnAQabyqyExdOXjoSe75Cf0PYFufmqxWHxfq85JwzQ8LOGg2rrVZyuTJ4GElK8ENjo4S3bBcl7N1BEagNrHh1mEROsXltQp!WruUmV0t9NGMEYj1CHyq895JzcxSveF5YwAWmw4mts5xU4nGVPMqpvU0YR3T5SKextRb24Rd77w~~"
+var baseURL = "http://localhost:5000/decrypt?cipher=%s" //"http://34.74.105.127/2edee56f24/?post=%s"
+var cipherEncoded = "N43hx+BXJLiLLvK4v72MMtXSYhryNYCpdMg97KglCMo="
+var paddingError = "IncorrectPadding"
 
 func main() {
 	/* hey there, here we go again, fresh and clean

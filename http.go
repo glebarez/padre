@@ -47,7 +47,7 @@ func isPaddingError(cipher []byte) (bool, error) {
 		return false, err
 	}
 
-	matched, err := regexp.Match("PaddingException", body)
+	matched, err := regexp.Match(paddingError, body)
 	if err != nil {
 		return false, err
 	}

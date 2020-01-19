@@ -38,6 +38,22 @@ def route_encrypt():
     # return
     return encode(cipher), 200
 
+@app.route('/encryptb64')
+def route_encryptb64():
+    # get plaintext
+    plain = request.args.get('plain', None)
+    if not plain:
+        return 'No plain', 
+    
+    # base64 to bytes
+    plain = ba.a2b_base64(plain)
+
+    # encrypt
+    cipher = cry.encrypt(plain, key, binary = True)
+
+    # return
+    return encode(cipher), 200
+
 @app.route('/decrypt')
 def route_decrypt():
     # get cipher

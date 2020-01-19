@@ -2,8 +2,10 @@ import binascii as ba
 from Crypto.Cipher import AES
 import binascii
 
-def encrypt(data, key):
-    data = data.encode() # to bytes
+def encrypt(data, key, binary = False):
+    if not binary:
+        data = data.encode() # to bytes
+        
     data = pad(data)     # pad for AES
 
     # new encryptor
