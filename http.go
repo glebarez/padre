@@ -20,12 +20,11 @@ func elapsed(what string) func() {
 	}
 }
 
-func isPaddingErr(cipher []byte) (bool, error) {
-
+func isPaddingError(cipher []byte) (bool, error) {
 	// encode the cipher
 	cipherEncoded := encode(cipher)
 
-	url, err := url.Parse(fmt.Sprintf("http://localhost:5000/decrypt?cipher=%s", url.QueryEscape(cipherEncoded)))
+	url, err := url.Parse(fmt.Sprintf(baseURL, url.QueryEscape(cipherEncoded)))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -48,41 +47,9 @@ func isPaddingErr(cipher []byte) (bool, error) {
 		return false, err
 	}
 
-	matched, err := regexp.Match("IncorrectPadding", body)
+	matched, err := regexp.Match("PaddingException", body)
 	if err != nil {
 		return false, err
 	}
-
-	return matched, nil
-}
-
-func isPaddingError(cipher []byte) (bool, error) {
-	defer elapsed("http request")
-	return isPaddingErr(cipher)
-
-	// encode the cipher
-	cipherEncoded := encode(cipher)
-
-	// build the url
-	url := fmt.Sprintf("http://localhost:5000/decrypt?cipher=%s", url.QueryEscape(cipherEncoded))
-
-	// send request
-	resp, err := http.Get(url)
-	if err != nil {
-		return false, err
-	}
-	defer resp.Body.Close()
-
-	// parse the answer
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return false, err
-	}
-
-	matched, err := regexp.Match("IncorrectPadding", body)
-	if err != nil {
-		return false, err
-	}
-
 	return matched, nil
 }

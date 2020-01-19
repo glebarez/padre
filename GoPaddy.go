@@ -7,6 +7,9 @@ import (
 
 const blockLen = 16
 
+var baseURL = "http://34.74.105.127/2edee56f24/?post=%s"
+var cipherEncoded = "9P3GWr4PEd8F1e2AR-HopshWrUfNiLWFX2gkVlI1BDLlnAQabyqyExdOXjoSe75Cf0PYFufmqxWHxfq85JwzQ8LOGg2rrVZyuTJ4GElK8ENjo4S3bBcl7N1BEagNrHh1mEROsXltQp!WruUmV0t9NGMEYj1CHyq895JzcxSveF5YwAWmw4mts5xU4nGVPMqpvU0YR3T5SKextRb24Rd77w~~"
+
 func main() {
 	/* hey there, here we go again, fresh and clean
 	in this chapter, we are going to implement a Padding Oracle exploit
@@ -14,7 +17,6 @@ func main() {
 	with neat & nice parallelization, progress bars, and hollywood-stye looking hack! */
 
 	// usually we are given an initial, valid cipher, tampering on which, we discover the plaintext! get ready!
-	cipherEncoded := "7vfdjOkaKM7aAKTpYAFBaiUWNeu8mMOrmcFXsycgw0I="
 
 	// we decode it into bytes, so we can tamper it at that byte level
 	cipher, err := decode(cipherEncoded)
