@@ -1,0 +1,63 @@
+# A simple flask web server just to test things out
+from gevent import monkey
+monkey.patch_all()
+from gevent.pywsgi import WSGIServer
+
+from flask import Flask, request, abort, make_response
+import binascii as ba
+import hashlib
+from Crypto.Cipher import AES
+import cry
+import traceback
+
+app = Flask(__name__)
+app.config['DEBUG'] = False
+secret = 'Some really secret key'
+key = hashlib.md5(secret.encode()).digest()
+
+def decode(data):
+    # x = data.replace('~', '=').replace('!', '/').replace('-', '+')
+    x = ba.a2b_base64(data)
+    return x
+
+def encode(data):
+    x = ba.b2a_base64(data).decode()[:-1]
+    # x = x.replace('=', '~').replace('/', '!').replace('+', '-')
+    return x
+
+@app.route('/encrypt')
+def route_encrypt():
+    # get plaintext
+    plain = request.args.get('plain', None)
+    if not plain:
+        return 'No plain', 500
+
+    # encrypt
+    cipher = cry.encrypt(plain, key)
+
+    # return
+    return encode(cipher), 200
+
+@app.route('/decrypt')
+def route_decrypt():
+    # get cipher
+    cipher = request.args.get('cipher',None)
+    if not cipher:
+        return 'No cipher', 500
+
+    try:
+        cipher = decode(cipher)
+        plain = cry.decrypt(cipher, key)
+        return plain, 200
+    except Exception:
+        response = make_response(traceback.format_exc(),500)
+        response.headers["content-type"] = "text/plain"
+        return response
+
+
+if __name__ == '__main__':
+    # app.run()
+    WSGIServer((
+    "127.0.0.1", # str(HOST)
+    5000,  # int(PORT)
+), app.wsgi_app).serve_forever()
