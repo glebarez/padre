@@ -31,7 +31,8 @@ func isPaddingErr(cipher []byte) (bool, error) {
 	}
 
 	req := &http.Request{
-		URL: url,
+		URL:    url,
+		Header: headers,
 	}
 
 	// send request
