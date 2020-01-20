@@ -58,7 +58,7 @@ def route_encryptb64():
 @app.route('/decrypt')
 def route_decrypt():
     # artifical sleep
-    time.sleep(random.random())
+    time.sleep(random.random()/4 + .1)
     # get cipher
     cipher = request.args.get('cipher',None)
     if not cipher:

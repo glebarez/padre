@@ -8,7 +8,7 @@ import (
 
 const blockLen = 16
 
-var parallel = 5
+var parallel = 20
 var baseURL = "http://localhost:5000/decrypt?cipher=%s" //"http://34.74.105.127/2edee56f24/?post=%s"
 var cipherEncoded = "jigNcuWcyzd8QB7E/fm7peYSX9gnh6/gYG5Hmy/Bz7IVHVUM1hFyoCjPREV5efzK"
 var paddingError = "IncorrectPadding"
@@ -56,8 +56,10 @@ func main() {
 	plainText := make([]byte, len(cipher)-blockLen)
 
 	// decode every cipher chunk and fill-in the relevant plaintext positions
-	for i, cipherChunk := range cipherChunks {
-		plainChunk, err := decipherChunk(cipherChunk)
+	outChan := hollyHack(len(plainText))
+	// for i, cipherChunk := range cipherChunks {
+	for i := len(cipherChunks) - 1; i >= 0; i-- {
+		plainChunk, err := decipherChunk(cipherChunks[i], outChan)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -65,5 +67,5 @@ func main() {
 	}
 
 	// that's it!
-	fmt.Println(string(plainText))
+	fmt.Printf("\r%s", string(plainText))
 }
