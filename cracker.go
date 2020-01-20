@@ -75,7 +75,7 @@ func findGoodByte(chunk []byte, pos int, original byte) (bool, byte, error) {
 
 	chanErr := make(chan error)
 	chanVal := make(chan byte)
-	chanPara := make(chan byte, 20)
+	chanPara := make(chan byte, parallel)
 	chanDone := make(chan byte, 0xff)
 
 	for i := 0; i < 0xff; i++ {

@@ -13,13 +13,6 @@ import (
 var client = &http.Client{}
 var headers = http.Header{"Connection": {"keep-alive"}}
 
-// func elapsed(what string) func() {
-// 	start := time.Now()
-// 	return func() {
-// 		log.Printf("%s took %v\n", what, time.Since(start))
-// 	}
-// }
-
 func isPaddingError(cipher []byte, ctx *context.Context) (bool, error) {
 	//time.Sleep(time.Second)
 	//return false, nil

@@ -8,8 +8,9 @@ import (
 
 const blockLen = 16
 
+var parallel = 5
 var baseURL = "http://localhost:5000/decrypt?cipher=%s" //"http://34.74.105.127/2edee56f24/?post=%s"
-var cipherEncoded = "kzyPWY9AzRJlRdOPtgi1Q93hrDHkZUloQ7/7KPg6TdA="
+var cipherEncoded = "jigNcuWcyzd8QB7E/fm7peYSX9gnh6/gYG5Hmy/Bz7IVHVUM1hFyoCjPREV5efzK"
 var paddingError = "IncorrectPadding"
 
 func main() {
