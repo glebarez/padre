@@ -9,6 +9,7 @@ import hashlib
 from Crypto.Cipher import AES
 import cry
 import traceback
+import random, time
 
 app = Flask(__name__)
 app.config['DEBUG'] = False
@@ -56,6 +57,8 @@ def route_encryptb64():
 
 @app.route('/decrypt')
 def route_decrypt():
+    # artifical sleep
+    time.sleep(random.random())
     # get cipher
     cipher = request.args.get('cipher',None)
     if not cipher:

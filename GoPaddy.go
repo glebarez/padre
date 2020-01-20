@@ -3,15 +3,20 @@ package main
 import (
 	"fmt"
 	"log"
+	//	_ "net/http/pprof"
 )
 
 const blockLen = 16
 
 var baseURL = "http://localhost:5000/decrypt?cipher=%s" //"http://34.74.105.127/2edee56f24/?post=%s"
-var cipherEncoded = "N43hx+BXJLiLLvK4v72MMtXSYhryNYCpdMg97KglCMo="
+var cipherEncoded = "kzyPWY9AzRJlRdOPtgi1Q93hrDHkZUloQ7/7KPg6TdA="
 var paddingError = "IncorrectPadding"
 
 func main() {
+
+	// go func() {
+	// 	log.Println(http.ListenAndServe("localhost:6060", nil))
+	// }()
 	/* hey there, here we go again, fresh and clean
 	in this chapter, we are going to implement a Padding Oracle exploit
 	starting with really simple stuff, we eventually will produce a solid product
