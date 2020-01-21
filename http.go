@@ -15,22 +15,19 @@ var headers http.Header
 
 func init() {
 	// create http client
-	//proxyURL, _ := url.Parse("http://localhost:8080")
-	//client = &http.Client{Transport: &http.Transport{Proxy: http.ProxyURL(proxyURL)}}
-	client = &http.Client{}
+	proxyURL, _ := url.Parse("http://localhost:8080")
+	client = &http.Client{Transport: &http.Transport{Proxy: http.ProxyURL(proxyURL)}}
+	//client = &http.Client{}
 
 	// headers
 	headers = http.Header{"Connection": {"keep-alive"}}
 }
 
 func isPaddingError(cipher []byte, ctx *context.Context) (bool, error) {
-	//time.Sleep(time.Second)
-	//return false, nil
-
 	// encode the cipher
 	cipherEncoded := encode(cipher)
-
-	url, err := url.Parse(fmt.Sprintf(baseURL, url.QueryEscape(cipherEncoded)))
+	// url.QueryEscape(
+	url, err := url.Parse(fmt.Sprintf(baseURL, cipherEncoded)))
 	if err != nil {
 		log.Fatal(err)
 	}

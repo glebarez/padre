@@ -17,10 +17,13 @@ var baseURL = "http://35.227.24.107/7631b88aa5/?post=%s"
 
 //var cipherEncoded = "wisO!xCqNUzXsrGvT-28lWmwauv!u2FFQMNwqt30tf0~"
 //var cipherEncoded = "enZ2E66YbDsH9jvYUdqSUpu-KfUxfFHHGqM66DbpkrmZ-ghpdGlpDxNcn7Iaqrd1cPzgiwQUDxXZJh-CFJKkwVjDNJK8JGi57zJ7oa6joiUqAJMiVdUAXijqh0jtM5Y6!i9eo9lCAFgm46oEXGz-BMIFb!drps!zzLo2f6Tz!ygbVYhTbpS!tU5V4kIbMmbaqo5jOCfkjFzp4EU!kmNHig~~"
-var cipherEncoded = "fvQAKDepsnMSNpRGmoydwG5VX80e9evRhjIEQSN8XnTItxNGSYEnpaYmdNXnrIJY!Ct-4JQqSem5Bx9q3mqMVVr!viYIn5rRxW1u!gv0!Ai4TmvtCoxTgxpflp1-wR7kuc7ucSVyOWNTAX1rGVt99m-l9eFQuC2!LnqIX38x4Dv46aFRCY0SWjvlKEiXGRBFgyUyXbwP4DxcCCmDZzb95w~~"
+var cipherEncoded = "SqSdDHQt0u3b3Hmzklmd2oom2AjfJ8gmwir8PPXBXy6ybHE1o3KRleVxELoZAu-7MiAJGNCV075GhBsdokAFm0JLMA9XHJ4SLCIRU7K!6HktXt!y9rD4MEf6kvzxftlt35jGUuqL3t0RwSJjcMC-7eQuN9aFue5p9kqA7MlQSUiSD0J9Id8mCqsbwLXGohGS5w53EJz9jX6-g1vkS3lDiA~~"
+
+//"fvQAKDepsnMSNpRGmoydwG5VX80e9evRhjIEQSN8XnTItxNGSYEnpaYmdNXnrIJY!Ct-4JQqSem5Bx9q3mqMVVr!viYIn5rRxW1u!gv0!Ai4TmvtCoxTgxpflp1-wR7kuc7ucSVyOWNTAX1rGVt99m-l9eFQuC2!LnqIX38x4Dv46aFRCY0SWjvlKEiXGRBFgyUyXbwP4DxcCCmDZzb95w~~"
 var paddingError = "PaddingException"
 
 func main() {
+	Logo()
 	// usually we are given an initial, valid cipher, tampering on which, we discover the plaintext! get ready!
 	// we decode it into bytes, so we can tamper it at that byte level
 	cipher, err := decode(cipherEncoded)
@@ -65,5 +68,4 @@ func main() {
 
 	// that's it!
 	status.print(true)
-	//fmt.Printf("\r%s", string(plainText))
 }
