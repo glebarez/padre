@@ -11,7 +11,6 @@ func decipherChunk(chunk []byte, outChan chan byte) ([]byte, error) {
 
 	// we start with the last byte of first block
 	// and repeat the same procedure for every byte in that block
-
 	for pos := blockLen - 1; pos >= 0; pos-- {
 		//log.Printf("Getting pos %d", pos)
 		originalByte := chunk[pos]
