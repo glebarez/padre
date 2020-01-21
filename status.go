@@ -89,7 +89,8 @@ func hollyHack(plainLen int) (chan byte, *processingStatus) {
 				status.print(false)
 			case b, ok := <-input:
 				// correct the real deal
-				status.decipheredPlain = append([]byte{b}, status.decipheredPlain...)
+				//status.decipheredPlain = append([]byte{b}, status.decipheredPlain...)
+				status.decipheredPlain = append(string(b), status.decipheredPlain...)
 				status.wg.Done()
 
 				// return when channel is closed
