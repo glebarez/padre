@@ -2,39 +2,41 @@ package main
 
 import (
 	"fmt"
+	"io"
+	"os"
 	"sync"
 	"time"
 )
 
-const letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
-
-var chanReq = make(chan byte)
-
-func randStringBytes(n int) string {
-	b := make([]byte, n)
-	for i := range b {
-		//b[i] = letterBytes[rand.Intn(len(letterBytes))]
-		b[i] = '_'
-	}
-	return string(b)
-}
+var currentStatus *processingStatus
 
 type processingStatus struct {
-	requestsMade    int
 	plainLen        int
-	decipheredPlain []byte
+	decipheredPlain string
+	decipheredCount int
+	chanPlain       chan byte
 	wg              sync.WaitGroup
 	start           time.Time
+	requestsMade    int
 	rps             int
+	chanReq         chan byte
+	currentCipher   int
+	totalCiphers    int
+	output          io.WriteCloser
+	autoUpdateFreq  int
 }
 
 func createStatus(plainLen int) *processingStatus {
 	status := &processingStatus{
-		plainLen:        plainLen,
-		decipheredPlain: make([]byte, 0),
-		wg:              sync.WaitGroup{},
+		plainLen:  plainLen,
+		wg:        sync.WaitGroup{},
+		output:    os.Stderr,
+		chanPlain: make(chan byte),
+		chanReq:   make(chan byte, parallel),
 	}
 	status.wg.Add(plainLen)
+
+	currentStatus = status
 	return status
 }
 
@@ -43,64 +45,75 @@ func (p *processingStatus) countRequest() {
 		p.start = time.Now()
 	}
 	p.requestsMade++
-	secsPassed := int(time.Now().Sub(p.start).Seconds())
+	secsPassed := int(time.Since(p.start).Seconds())
 	if secsPassed > 0 {
 		p.rps = p.requestsMade / int(secsPassed)
 	}
 }
 
-func (p *processingStatus) print(final bool) {
-	if final {
-		p.wg.Wait()
-	}
-
-	randLen := p.plainLen - len(p.decipheredPlain)
+func (p *processingStatus) buildStatusString() string {
+	randLen := p.plainLen - p.decipheredCount
 	plain := fmt.Sprintf("%s%s", randStringBytes(randLen), string(p.decipheredPlain))
 	status := fmt.Sprintf(
-		"%+q (%d/%d) | Requests made: %d (%d/sec)",
+		"%s (%d/%d) | Requests made: %d (%d/sec)",
 		plain,
-		len(p.decipheredPlain),
+		p.decipheredCount,
 		p.plainLen,
 		p.requestsMade,
 		p.rps)
-
-	fmt.Printf(status)
-	if final {
-		fmt.Printf("\n")
-	} else {
-		fmt.Print("\r")
-	}
+	return status
 }
 
-func hollyHack(plainLen int) (chan byte, *processingStatus) {
-	status := createStatus(plainLen)
+func (p *processingStatus) waitFinish() {
+	p.wg.Wait()
+}
 
-	// create channel for external writer
-	input := make(chan byte, 100)
+func (p *processingStatus) printSameLine(s string) {
+	fmt.Fprintf(p.output, "\r%s", s)
+}
 
-	// get ticker with update interval we need to print the shit
-	t := time.NewTicker(time.Second / 10)
+func (p *processingStatus) printNewLine(s string) {
+	fmt.Fprintf(p.output, "\n%s", s)
+}
 
-	// start printing shit, sometime replacing with real deal
+func (p *processingStatus) printAppend(s string) {
+	fmt.Fprintf(p.output, "%s", s)
+}
+
+func (p *processingStatus) close() {
+	// wait untill all the plaintext is recieved
+	p.wg.Wait()
+
+	// print the final status string
+	p.printSameLine(p.buildStatusString())
+
+	// print newline
+	p.printNewLine("")
+}
+
+func (p *processingStatus) startStatusBar() {
+	// get ticker
+	ticker := time.NewTicker(time.Second / time.Duration(p.autoUpdateFreq))
+
+	// start loop in separate thread
 	go func() {
 		for {
 			select {
-			case <-t.C:
-				status.print(false)
-			case b, ok := <-input:
-				// correct the real deal
-				//status.decipheredPlain = append([]byte{b}, status.decipheredPlain...)
-				status.decipheredPlain = append(string(b), status.decipheredPlain...)
-				status.wg.Done()
+			case <-ticker.C:
+				p.printSameLine(p.buildStatusString())
+			case b, ok := <-p.chanPlain:
+				// correct the plain text info
+				p.decipheredCount++
+				p.decipheredPlain = escapeChar(b) + p.decipheredPlain
+				p.wg.Done()
 
-				// return when channel is closed
+				// exit this goroutine when channel is closed
 				if !ok {
 					return
 				}
-			case <-chanReq:
-				status.countRequest()
+			case <-p.chanReq:
+				p.countRequest()
 			}
 		}
 	}()
-	return input, status
 }

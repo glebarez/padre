@@ -6,7 +6,7 @@ import (
 
 const blockLen = 16
 
-var parallel = 10
+var parallel = 100
 
 // var baseURL = "http://localhost:5000/decrypt?cipher=%s"
 // var cipherEncoded = "jigNcuWcyzd8QB7E/fm7peYSX9gnh6/gYG5Hmy/Bz7IVHVUM1hFyoCjPREV5efzK"
@@ -45,11 +45,14 @@ func main() {
 	// create container for a final plaintext
 	plainText := make([]byte, len(cipher)-blockLen)
 
+	// init new status bar
+	status := createStatus(len(plainText))
+	status.startStatusBar()
+
 	// decode every cipher chunk and fill-in the relevant plaintext positions
 	// we move backwards through chunks, though it really doesn't matter
-	outChan, status := hollyHack(len(plainText))
 	for i := len(cipherChunks) - 1; i >= 0; i-- {
-		plainChunk, err := decipherChunk(cipherChunks[i], outChan)
+		plainChunk, err := decipherChunk(cipherChunks[i])
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -57,5 +60,5 @@ func main() {
 	}
 
 	// that's it!
-	status.print(true)
+	status.close()
 }

@@ -5,14 +5,12 @@ import (
 	"fmt"
 )
 
-var overall = 0
-
-func decipherChunk(chunk []byte, outChan chan byte) ([]byte, error) {
+func decipherChunk(chunk []byte) ([]byte, error) {
 	// create buffer to store the deciphered block of plaintext
 	plainText := make([]byte, blockLen)
 
 	// we start with the last byte of first block
-	// and repeat the same procedure for every byte in that block
+	// and repeat the same procedure for every byte in that block, moving backwards
 	for pos := blockLen - 1; pos >= 0; pos-- {
 		originalByte := chunk[pos]
 
@@ -43,11 +41,13 @@ func decipherChunk(chunk []byte, outChan chan byte) ([]byte, error) {
 		// okay, now that we found the byte that fits, we can reveal the plaintext byte with some XOR magic
 		currPaddingValue := byte(16 - pos)
 		plainText[pos] = foundByte ^ originalByte ^ currPaddingValue
-		if outChan != nil {
-			outChan <- plainText[pos]
+
+		// report to current status about deciphered plain byte
+		if currentStatus != nil {
+			currentStatus.chanPlain <- plainText[pos]
 		}
 
-		/* we actually need to repair the padding for the next shot
+		/* we need to repair the padding for the next shot
 		e.g. we need to adjust the already tapered bytes block*/
 		chunk[pos] = foundByte
 		nextPaddingValue := currPaddingValue + 1

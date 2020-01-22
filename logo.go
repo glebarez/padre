@@ -1,6 +1,10 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+	"os"
+	"strings"
+)
 
 var logo = `
  ▄▄ •        ▄▄▄· ▄▄▄· ·▄▄▄▄  ·▄▄▄▄   ▄· ▄▌
@@ -11,5 +15,9 @@ var logo = `
 `
 
 func Logo() {
-	fmt.Println(logo)
+	indent := "                 "
+
+	for _, s := range strings.Split(logo, "\n") {
+		fmt.Fprintf(os.Stderr, "%s%s\n", indent, s)
+	}
 }
