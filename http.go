@@ -67,7 +67,7 @@ func isPaddingError(cipher []byte, ctx *context.Context) (bool, error) {
 	defer resp.Body.Close()
 
 	// report about made request
-	if currentStatus != nil {
+	if currentStatus.chanReq != nil {
 		currentStatus.chanReq <- 1
 	}
 

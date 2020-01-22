@@ -80,6 +80,10 @@ func (p *processingStatus) printAppend(s string) {
 	fmt.Fprintf(p.output, "%s", s)
 }
 
+func (p *processingStatus) printAction(s string) {
+	p.printSameLine(yellowBold(s))
+}
+
 func (p *processingStatus) finishStatusBar() {
 	// wait untill all the plaintext is recieved
 	p.wg.Wait()
@@ -95,12 +99,12 @@ func (p *processingStatus) error(err error) {
 	// stop thread if it is running, to avoid goroutine leak
 	if p.chanStop != nil {
 		p.chanStop <- 0
-	}
 
-	// print the current status without hacky stuff
-	hacky = false
-	p.printSameLine(p.buildStatusString())
-	hacky = true
+		// print the current status without hacky stuff
+		hacky = false
+		p.printSameLine(p.buildStatusString())
+		hacky = true
+	}
 
 	// print the error which caused the abort
 	p.printNewLine(red(err.Error()) + "\n")

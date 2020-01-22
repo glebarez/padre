@@ -70,9 +70,11 @@ func main() {
 	}
 
 	// flush output afterwards
-	err = os.Stdout.Sync()
-	if err != nil {
-		printError(err)
-		os.Exit(1)
+	if !(isatty.IsTerminal(os.Stdout.Fd()) || isatty.IsCygwinTerminal(os.Stdout.Fd())) {
+		err = os.Stdout.Sync()
+		if err != nil {
+			printError(err)
+			os.Exit(1)
+		}
 	}
 }
