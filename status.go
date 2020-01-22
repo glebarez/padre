@@ -11,6 +11,7 @@ import (
 
 var currentStatus *processingStatus
 
+/* this has to be justified */
 type processingStatus struct {
 	plainLen        int
 	decipheredPlain string
@@ -21,18 +22,17 @@ type processingStatus struct {
 	requestsMade    int
 	rps             int
 	chanReq         chan byte
-	currentCipher   int
-	totalCiphers    int
 	output          io.Writer
 	autoUpdateFreq  int
 	chanStop        chan byte
 	prefix          string
 }
 
-func createStatus() *processingStatus {
+func createStatus(current, total int) *processingStatus {
 	status := &processingStatus{
 		output:         color.Error,
 		autoUpdateFreq: 10,
+		prefix:         fmt.Sprintf("[%d/%d]", current, total),
 	}
 
 	currentStatus = status
@@ -64,8 +64,12 @@ func (p *processingStatus) buildStatusString() string {
 	return status
 }
 
+func (p *processingStatus) prefixed(s string) string {
+	return fmt.Sprintf("%s %s", cyanBold(p.prefix), s)
+}
+
 func (p *processingStatus) printSameLine(s string) {
-	fmt.Fprintf(p.output, "\r%s", s)
+	fmt.Fprintf(p.output, "\r%s", p.prefixed(s))
 }
 
 func (p *processingStatus) printNewLine(s string) {
@@ -84,10 +88,7 @@ func (p *processingStatus) finishStatusBar() {
 	p.chanStop <- 0
 
 	// print the final status string
-	p.printSameLine(p.buildStatusString())
-
-	// print newline
-	p.printNewLine("")
+	p.printSameLine(p.buildStatusString() + "\n")
 }
 
 func (p *processingStatus) error(err error) {
@@ -99,10 +100,10 @@ func (p *processingStatus) error(err error) {
 	// print the current status without hacky stuff
 	hacky = false
 	p.printSameLine(p.buildStatusString())
+	hacky = true
 
 	// print the error which caused the abort
-	p.printNewLine(red(err.Error()))
-	p.printNewLine("")
+	p.printNewLine(red(err.Error()) + "\n")
 }
 
 func (p *processingStatus) startStatusBar(plainLen int) {

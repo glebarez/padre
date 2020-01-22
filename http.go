@@ -4,20 +4,26 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"net/url"
 	"regexp"
+	"strings"
 )
 
 var client *http.Client
 var headers http.Header
 
-func initHTTP() {
+func initHTTP() error {
 	// parse proxy URL
-	proxyURL, err := url.Parse(*config.proxyURL)
-	if err != nil {
-		log.Fatal(err)
+	var proxyURL *url.URL
+	if *config.proxyURL == "" {
+		proxyURL = nil
+	} else {
+		var err error
+		proxyURL, err = url.Parse(*config.proxyURL)
+		if err != nil {
+			return err
+		}
 	}
 
 	// http client
@@ -30,14 +36,16 @@ func initHTTP() {
 
 	// headers
 	headers = http.Header{"Connection": {"keep-alive"}}
+
+	return nil
 }
 
 func isPaddingError(cipher []byte, ctx *context.Context) (bool, error) {
 	// encode the cipher
 	cipherEncoded := config.encoder.encode(cipher)
-	url, err := url.Parse(fmt.Sprintf(*config.URL, url.QueryEscape(cipherEncoded)))
+	url, err := url.Parse(fmt.Sprintf(strings.Replace(*config.URL, "$", `%s`, 1), url.QueryEscape(cipherEncoded)))
 	if err != nil {
-		log.Fatal(err)
+		return false, err
 	}
 
 	// create request
@@ -69,6 +77,7 @@ func isPaddingError(cipher []byte, ctx *context.Context) (bool, error) {
 		return false, err
 	}
 
+	// test for padding oracle error string
 	matched, err := regexp.Match(*config.paddingError, body)
 	if err != nil {
 		return false, err

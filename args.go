@@ -139,14 +139,16 @@ func parseArgs() (ok bool, cipher *string) {
 		cipher = &flag.Args()[0]
 	default:
 		// too many positional arguments
-		argError("CIPHER", "Too many arguments specified, specifiy exactly one string, or leave empty to read from STDIN")
+		argError("[CIPHER]", "Too many arguments specified, specifiy exactly one string, or leave empty to read from STDIN")
 	}
 
+	// print info about errors occured
 	if hadErrors {
-		fmt.Fprintf(color.Error, fmt.Sprintf("run %s to see usage help", greenBold("gopaddy -h")))
+		fmt.Fprintf(color.Error, fmt.Sprintf("run %s to see usage help\n", greenBold("GoPaddy -h")))
 		ok = false
 		return
 	}
+
 	ok = true
 	return
 }

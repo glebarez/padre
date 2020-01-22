@@ -24,7 +24,7 @@ func decipher(cipherEncoded string) ([]byte, error) {
 	/* we need to check that overall cipher length complies with blockLen
 	as this is crucial to further logic */
 	if len(cipher)%blockLen != 0 {
-		status.error(fmt.Errorf("Cipher len is bad"))
+		return nil, fmt.Errorf("Cipher len is not compatible with block len (%d %% %d != 0)", len(cipher), blockLen)
 	}
 	blockCount := len(cipher)/blockLen - 1
 

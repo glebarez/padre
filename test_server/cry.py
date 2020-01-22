@@ -1,5 +1,6 @@
 import binascii as ba
 from Crypto.Cipher import AES
+from Crypto.Random import get_random_bytes
 import binascii
 
 def encrypt(data, key, binary = False):
