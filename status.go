@@ -112,7 +112,7 @@ func (p *processingStatus) startStatusBar(plainLen int) {
 	p.wg.Add(plainLen)
 
 	p.chanPlain = make(chan byte)
-	p.chanReq = make(chan byte, parallel)
+	p.chanReq = make(chan byte, *config.parallel)
 	p.chanStop = make(chan byte)
 
 	// get ticker
