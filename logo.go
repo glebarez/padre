@@ -2,8 +2,10 @@ package main
 
 import (
 	"fmt"
-	"os"
 	"strings"
+	"time"
+
+	"github.com/fatih/color"
 )
 
 var logo = `
@@ -16,8 +18,10 @@ var logo = `
 
 func Logo() {
 	indent := "                 "
+	cyan := color.New(color.FgCyan)
 
 	for _, s := range strings.Split(logo, "\n") {
-		fmt.Fprintf(os.Stderr, "%s%s\n", indent, s)
+		time.Sleep(50 * time.Millisecond)
+		fmt.Fprintf(color.Error, cyan.Sprintf("%s%s\n", indent, s))
 	}
 }

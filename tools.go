@@ -3,15 +3,29 @@ package main
 import (
 	"encoding/base64"
 	"fmt"
+	"math/rand"
 	"strings"
 )
 
-const letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+var hacky = true
+
+func randString(n int) string {
+	b := make([]byte, n)
+	for i := range b {
+
+		if hacky {
+			b[i] = byte(rand.Intn(126-33) + 33) // byte from ASCII printable range
+		} else {
+			b[i] = '_'
+		}
+	}
+	return string(b)
+}
 
 func decode(s string) ([]byte, error) {
-	s = strings.Replace(s, "~", "=", -1)
-	s = strings.Replace(s, "-", "+", -1)
-	s = strings.Replace(s, "!", "/", -1)
+	// s = strings.Replace(s, "~", "=", -1)
+	// s = strings.Replace(s, "-", "+", -1)
+	// s = strings.Replace(s, "!", "/", -1)
 
 	data, err := base64.StdEncoding.DecodeString(s)
 	if err != nil {
@@ -23,19 +37,10 @@ func decode(s string) ([]byte, error) {
 func encode(data []byte) string {
 	s := base64.StdEncoding.EncodeToString(data)
 
-	s = strings.Replace(s, "=", "~", -1)
-	s = strings.Replace(s, "+", "-", -1)
-	s = strings.Replace(s, "/", "!", -1)
+	// s = strings.Replace(s, "=", "~", -1)
+	// s = strings.Replace(s, "+", "-", -1)
+	// s = strings.Replace(s, "/", "!", -1)
 	return s
-}
-
-func randStringBytes(n int) string {
-	b := make([]byte, n)
-	for i := range b {
-		//b[i] = letterBytes[rand.Intn(len(letterBytes))]
-		b[i] = '_'
-	}
-	return string(b)
 }
 
 func escapeChar(char byte) string {

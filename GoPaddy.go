@@ -1,34 +1,52 @@
 package main
 
 import (
-	"log"
+	"fmt"
+	"os"
+
+	"github.com/mattn/go-isatty"
 )
 
 const blockLen = 16
 
 var parallel = 100
 
-// var baseURL = "http://localhost:5000/decrypt?cipher=%s"
-// var cipherEncoded = "jigNcuWcyzd8QB7E/fm7peYSX9gnh6/gYG5Hmy/Bz7IVHVUM1hFyoCjPREV5efzK"
-// var paddingError = "IncorrectPadding"
+var baseURL = "http://localhost:5000/decrypt?cipher=%s"
+var cipherEncoded = "jigNcuWcyzd8QB7E/fm7peYSX9gnh6/gYG5Hmy/Bz7IVHVUM1hFyoCjPREV5efzK"
+var paddingError = "IncorrectPadding"
 
-var baseURL = "http://35.227.24.107/7631b88aa5/?post=%s"
-var cipherEncoded = "SqSdDHQt0u3b3Hmzklmd2oom2AjfJ8gmwir8PPXBXy6ybHE1o3KRleVxELoZAu-7MiAJGNCV075GhBsdokAFm0JLMA9XHJ4SLCIRU7K!6HktXt!y9rD4MEf6kvzxftlt35jGUuqL3t0RwSJjcMC-7eQuN9aFue5p9kqA7MlQSUiSD0J9Id8mCqsbwLXGohGS5w53EJz9jX6-g1vkS3lDiA~~"
-var paddingError = "PaddingException"
+// var baseURL = "http://35.227.24.107/7631b88aa5/?post=%s"
+// var cipherEncoded = "SqSdDHQt0u3b3Hmzklmd2oom2AjfJ8gmwir8PPXBXy6ybHE1o3KRleVxELoZAu-7MiAJGNCV075GhBsdokAFm0JLMA9XHJ4SLCIRU7K!6HktXt!y9rD4MEf6kvzxftlt35jGUuqL3t0RwSJjcMC-7eQuN9aFue5p9kqA7MlQSUiSD0J9Id8mCqsbwLXGohGS5w53EJz9jX6-g1vkS3lDiA~~"
+// var paddingError = "PaddingException"
 
 func main() {
 	Logo()
-	// usually we are given an initial, valid cipher, tampering on which, we discover the plaintext
-	// we decode it into bytes, so we can tamper it at that byte level
-	cipher, err := decode(cipherEncoded)
+	createStatus()
+	plain, err := decipher(cipherEncoded)
 	if err != nil {
-		log.Fatal(err)
+		currentStatus.error(err)
 	}
 
-	// we also need to check that overall cipher length complies with blockLen
-	// as this is crucial to further logic
+	if !isatty.IsTerminal(os.Stdout.Fd()) {
+		os.Stdout.Write(plain)
+	}
+}
+
+func decipher(cipherEncoded string) ([]byte, error) {
+	// we refer to current status
+	status := currentStatus
+
+	/* usually we are given an initial, valid cipher, tampering on which, we discover the plaintext
+	we decode it into bytes, so we can tamper it at that byte level */
+	cipher, err := decode(cipherEncoded)
+	if err != nil {
+		return nil, err
+	}
+
+	/* we need to check that overall cipher length complies with blockLen
+	as this is crucial to further logic */
 	if len(cipher)%blockLen != 0 {
-		log.Fatal("Cipher len is bad")
+		status.error(fmt.Errorf("Cipher len is bad"))
 	}
 	blockCount := len(cipher)/blockLen - 1
 
@@ -46,19 +64,19 @@ func main() {
 	plainText := make([]byte, len(cipher)-blockLen)
 
 	// init new status bar
-	status := createStatus(len(plainText))
-	status.startStatusBar()
+	status.startStatusBar(len(plainText))
 
 	// decode every cipher chunk and fill-in the relevant plaintext positions
 	// we move backwards through chunks, though it really doesn't matter
 	for i := len(cipherChunks) - 1; i >= 0; i-- {
 		plainChunk, err := decipherChunk(cipherChunks[i])
 		if err != nil {
-			log.Fatal(err)
+			return nil, err
 		}
 		copy(plainText[i*16:(i+1)*16], plainChunk)
 	}
 
 	// that's it!
-	status.close()
+	status.finishStatusBar()
+	return plainText, nil
 }

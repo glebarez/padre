@@ -3,9 +3,10 @@ package main
 import (
 	"fmt"
 	"io"
-	"os"
 	"sync"
 	"time"
+
+	"github.com/fatih/color"
 )
 
 var currentStatus *processingStatus
@@ -22,19 +23,17 @@ type processingStatus struct {
 	chanReq         chan byte
 	currentCipher   int
 	totalCiphers    int
-	output          io.WriteCloser
+	output          io.Writer
 	autoUpdateFreq  int
+	chanStop        chan byte
+	prefix          string
 }
 
-func createStatus(plainLen int) *processingStatus {
+func createStatus() *processingStatus {
 	status := &processingStatus{
-		plainLen:  plainLen,
-		wg:        sync.WaitGroup{},
-		output:    os.Stderr,
-		chanPlain: make(chan byte),
-		chanReq:   make(chan byte, parallel),
+		output:         color.Error,
+		autoUpdateFreq: 10,
 	}
-	status.wg.Add(plainLen)
 
 	currentStatus = status
 	return status
@@ -53,19 +52,16 @@ func (p *processingStatus) countRequest() {
 
 func (p *processingStatus) buildStatusString() string {
 	randLen := p.plainLen - p.decipheredCount
-	plain := fmt.Sprintf("%s%s", randStringBytes(randLen), string(p.decipheredPlain))
+
 	status := fmt.Sprintf(
-		"%s (%d/%d) | Requests made: %d (%d/sec)",
-		plain,
+		"%s%s (%d/%d) | Requests made: %d (%d/sec)",
+		randString(randLen),
+		greenBold(p.decipheredPlain),
 		p.decipheredCount,
 		p.plainLen,
 		p.requestsMade,
 		p.rps)
 	return status
-}
-
-func (p *processingStatus) waitFinish() {
-	p.wg.Wait()
 }
 
 func (p *processingStatus) printSameLine(s string) {
@@ -80,9 +76,12 @@ func (p *processingStatus) printAppend(s string) {
 	fmt.Fprintf(p.output, "%s", s)
 }
 
-func (p *processingStatus) close() {
+func (p *processingStatus) finishStatusBar() {
 	// wait untill all the plaintext is recieved
 	p.wg.Wait()
+
+	// stop thread  to avoid goroutine leak
+	p.chanStop <- 0
 
 	// print the final status string
 	p.printSameLine(p.buildStatusString())
@@ -91,7 +90,31 @@ func (p *processingStatus) close() {
 	p.printNewLine("")
 }
 
-func (p *processingStatus) startStatusBar() {
+func (p *processingStatus) error(err error) {
+	// stop thread if it is running, to avoid goroutine leak
+	if p.chanStop != nil {
+		p.chanStop <- 0
+	}
+
+	// print the current status without hacky stuff
+	hacky = false
+	p.printSameLine(p.buildStatusString())
+
+	// print the error which caused the abort
+	p.printNewLine(red(err.Error()))
+	p.printNewLine("")
+}
+
+func (p *processingStatus) startStatusBar(plainLen int) {
+	// prepare all the stuff for async work
+	p.plainLen = plainLen
+	p.wg = sync.WaitGroup{}
+	p.wg.Add(plainLen)
+
+	p.chanPlain = make(chan byte)
+	p.chanReq = make(chan byte, parallel)
+	p.chanStop = make(chan byte)
+
 	// get ticker
 	ticker := time.NewTicker(time.Second / time.Duration(p.autoUpdateFreq))
 
@@ -101,18 +124,19 @@ func (p *processingStatus) startStatusBar() {
 			select {
 			case <-ticker.C:
 				p.printSameLine(p.buildStatusString())
-			case b, ok := <-p.chanPlain:
+
+			case b := <-p.chanPlain:
 				// correct the plain text info
 				p.decipheredCount++
 				p.decipheredPlain = escapeChar(b) + p.decipheredPlain
 				p.wg.Done()
 
-				// exit this goroutine when channel is closed
-				if !ok {
-					return
-				}
 			case <-p.chanReq:
 				p.countRequest()
+
+			case <-p.chanStop:
+				return
+
 			}
 		}
 	}()
