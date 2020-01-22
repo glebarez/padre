@@ -5,47 +5,51 @@ import (
 	"fmt"
 	"log"
 	"net/url"
+	"regexp"
 
 	"github.com/fatih/color"
 )
 
 var usage = `
 	GoPaddy is a fast tool to decrypt ciphers using padding oracle.
-	For details: https://en.wikipedia.org/wiki/Padding_oracle_attack
+	For details: link(https://en.wikipedia.org/wiki/Padding_oracle_attack)
 
-Usage: ` + greenBold("gopaddy OPTIONS CIPHER") + `
+Usage: cmd(GoPaddy [OPTIONS] [CIPHER])
 
-CIPHER (REQUIRED):
+CIPHER *required*
 	the encoded (to plaintext) value of valid cipher, whose value is to be decrypted
-	if not passed, GoPaddy will use STDIN, reading ciphers line by line,
-	which allows deciphering of multiple inputs in one run.
-	The provided cipher(s) will be internally decoded into bytes, 
-	using specified encoder (see option -e)
+	if not passed, GoPaddy will use STDIN, reading ciphers line by line
+	The provided cipher will be internally decoded into bytes, 
+	using specified encoder (see option flag(-e))
 
 OPTIONS:
--u (REQUIRED)
-	URL pattern to send, use "` + cyanBold(`$`) + `" to define a cipher placeholder,
-	e.g. if url is "http://vulnerable.com/?parameter=` + cyanBold("$") + `"
-	then HTTP request will be sent as "http://example.com/?parameter=` + cyanBold(`payload`) + `"
-	the payload will be filled-in as a cipher, encoded using specified rules (see -e flag)
--err (REQUIRED)
+
+flag(-u) *required*
+	URL pattern to send, use cipher($) to define a cipher placeholder,
+	e.g. if url is "http://vulnerable.com/?parameter=cipher($)"
+	then HTTP request will be sent as "http://example.com/?parameter=cipher(payload)"
+	the payload will be filled-in as a cipher, encoded using specified rules (see flag(-e) flag)
+
+flag(-err) *required*
 	A padding error pattern, HTTP responses will be searched for this string to detect 
 	if padding exception has occured
--b
+
+flag(-b)
 	Block length used in cipher (use 16 for AES)
 	Supported values:
 		8
-		16 (DEFAULT)
+		16 *default*
 		32
--enc
+
+flag(-e)
 	Encoding/Decoding, used to translate encoded plaintext cipher into bytes (and back)
 	When reading CIPHER, encoding is used backwards, to decode from plaintext to bytes
 	Usually, cipher is encoded to enable passing as a plaintext URL parameter
-	This option is used in conjunction with -r option (see below)
+	This option is used in conjunction with flag(-r) option (see below)
 	Supported values:
-		b64 (standard base64) (DEFAULT)
-		hex
--r
+		b64 (standard base64) *default*
+
+flag(-r)
 	Character replacement rules that vulnerable server applies
 	after encoding ciphers to plaintext payloads.
 	Use odd-length strings, consiting of pairs of characters <OLD><NEW>.
@@ -55,20 +59,41 @@ OPTIONS:
 		Those have special meaning in URL syntax, therefore, some servers will
 		further replace some of characters with others.
 		E.g. if server uses base64, but replaces '/' with '!', '+' with '-', '=' with '~',
-		then use -r "/!+-=~"
-	NOTE:
+		then use cmd(-r "/!+-=~")
+	link(NOTE:)
 		these replacements will be internally applied in reverse direction
 		before decoding plaintext cipher into bytes
--p
+
+flag(-p)
 	Number of parallel HTTP connections established to target server
 	The more connections, the faster is cracking speed
 	If passed value is greater than 256, it will be reduced to 256
-		DEFAULT: 100
--proxy
-	HTTP proxy. e.g. use "http://localhost:8080" for Burp or ZAP
+		100 *default*
+		
+flag(-proxy)
+	HTTP proxy. e.g. use cmd(-proxy "http://localhost:8080") for Burp or ZAP
 `
 
 func init() {
+	// add some color to usage text
+	re := regexp.MustCompile(`\*required\*`)
+	usage = string(re.ReplaceAll([]byte(usage), []byte(yellow(`(required)`))))
+
+	re = regexp.MustCompile(`\*default\*`)
+	usage = string(re.ReplaceAll([]byte(usage), []byte(greenBold(`(default)`))))
+
+	re = regexp.MustCompile(`cmd\(([^\)]*?)\)`)
+	usage = string(re.ReplaceAll([]byte(usage), []byte(cyanBold("$1"))))
+
+	re = regexp.MustCompile(`cipher\(([^\)]*?)\)`)
+	usage = string(re.ReplaceAll([]byte(usage), []byte(yellow("$1"))))
+
+	re = regexp.MustCompile(`flag\(([^\)]*?)\)`)
+	usage = string(re.ReplaceAll([]byte(usage), []byte(greenBold("$1"))))
+
+	re = regexp.MustCompile(`link\(([^\)]*?)\)`)
+	usage = string(re.ReplaceAll([]byte(usage), []byte(underline("$1"))))
+
 	// a custom usage
 	flag.Usage = func() {
 		fmt.Fprintf(color.Error, usage)
@@ -98,7 +123,7 @@ func parseArgs() (ok bool, cipher *string) {
 
 	// set-up the flags
 	config.URL = flag.String("u", "", "")
-	encoding := flag.String("enc", "b64", "")
+	encoding := flag.String("e", "b64", "")
 	replacements := flag.String("r", "", "")
 	config.paddingError = flag.String("err", "", "")
 	config.blockLen = flag.Int("b", 16, "")
@@ -107,6 +132,11 @@ func parseArgs() (ok bool, cipher *string) {
 
 	// parse
 	flag.Parse()
+
+	if flag.NFlag() == 0 {
+		flag.Usage()
+		return false, nil
+	}
 
 	// check values
 	var err error
@@ -129,7 +159,7 @@ func parseArgs() (ok bool, cipher *string) {
 			argError("-r", err.Error())
 		}
 	default:
-		argError("-enc", "Unsupported value passed")
+		argError("-e", "Unsupported encoding specified")
 	}
 
 	// padding error string
