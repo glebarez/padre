@@ -10,6 +10,7 @@ import (
 )
 
 var currentStatus *processingStatus
+var plainWidth = 80
 
 /* this has to be justified */
 type processingStatus struct {
@@ -23,7 +24,7 @@ type processingStatus struct {
 	rps             int
 	chanReq         chan byte
 	output          io.Writer
-	autoUpdateFreq  int
+	autoUpdateFreq  time.Duration
 	chanStop        chan byte
 	prefix          string
 }
@@ -31,7 +32,7 @@ type processingStatus struct {
 func createStatus(current, total int) *processingStatus {
 	status := &processingStatus{
 		output:         color.Error,
-		autoUpdateFreq: 10,
+		autoUpdateFreq: time.Second / 10,
 		prefix:         fmt.Sprintf("[%d/%d]", current, total),
 	}
 
@@ -39,6 +40,7 @@ func createStatus(current, total int) *processingStatus {
 	return status
 }
 
+// count request and adjust statistics
 func (p *processingStatus) countRequest() {
 	if p.requestsMade == 0 {
 		p.start = time.Now()
@@ -50,13 +52,17 @@ func (p *processingStatus) countRequest() {
 	}
 }
 
+// build status string
 func (p *processingStatus) buildStatusString() string {
 	randLen := p.plainLen - p.decipheredCount
 
+	plain := fmt.Sprintf("%s%s", randString(randLen), greenBold(p.decipheredPlain))
+
 	status := fmt.Sprintf(
-		"%s%s (%d/%d) | Requests made: %d (%d/sec)",
-		randString(randLen),
-		greenBold(p.decipheredPlain),
+		"%80s (%d/%d) | Requests made: %d (%d/sec)",
+		plain,
+		// randString(randLen),
+		// greenBold(p.decipheredPlain),
 		p.decipheredCount,
 		p.plainLen,
 		p.requestsMade,
@@ -120,16 +126,11 @@ func (p *processingStatus) startStatusBar(plainLen int) {
 	p.chanReq = make(chan byte, *config.parallel)
 	p.chanStop = make(chan byte)
 
-	// get ticker
-	ticker := time.NewTicker(time.Second / time.Duration(p.autoUpdateFreq))
-
 	// start loop in separate thread
 	go func() {
+		var lastPrint = time.Now()
 		for {
 			select {
-			case <-ticker.C:
-				p.printSameLine(p.buildStatusString())
-
 			case b := <-p.chanPlain:
 				// correct the plain text info
 				p.decipheredCount++
@@ -141,7 +142,12 @@ func (p *processingStatus) startStatusBar(plainLen int) {
 
 			case <-p.chanStop:
 				return
+			}
 
+			// update status line if it's time
+			if time.Since(lastPrint) > p.autoUpdateFreq {
+				p.printSameLine(p.buildStatusString())
+				lastPrint = time.Now()
 			}
 		}
 	}()
