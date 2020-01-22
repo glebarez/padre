@@ -63,7 +63,7 @@ OPTIONS:
 	Number of parallel HTTP connections established to target server
 	The more connections, the faster is cracking speed
 	If passed value is greater than 256, it will be reduced to 256
-		DEFAULT: 50
+		DEFAULT: 100
 -proxy
 	HTTP proxy. e.g. use "http://localhost:8080" for Burp or ZAP
 `
@@ -87,15 +87,22 @@ func argError(flag string, text string) {
 	hadErrors = true
 }
 
+func argWarning(flag string, text string) {
+	_, err := color.New(color.FgYellow, color.Bold).Fprintf(color.Error, "Parameter %s: %s\n", flag, text)
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+
 func parseArgs() (ok bool, cipher *string) {
 
 	// set-up the flags
 	config.URL = flag.String("u", "", "")
 	encoding := flag.String("enc", "b64", "")
 	replacements := flag.String("r", "", "")
-	config.blockLen = flag.Int("b", 16, "")
-	config.parallel = flag.Int("p", 50, "")
 	config.paddingError = flag.String("err", "", "")
+	config.blockLen = flag.Int("b", 16, "")
+	config.parallel = flag.Int("p", 100, "")
 	config.proxyURL = flag.String("proxy", "", "")
 
 	// parse
@@ -128,6 +135,24 @@ func parseArgs() (ok bool, cipher *string) {
 	// padding error string
 	if *config.paddingError == "" {
 		argError("-err", "Must be specified")
+	}
+
+	// block length
+	switch *config.blockLen {
+	case 8:
+	case 16:
+	case 32:
+	default:
+		argError("-b", "Unsupported value passed")
+	}
+
+	// parallel connections
+	if *config.parallel < 1 {
+		argWarning("-p", "Cannot be less than 1, value corrected to default value (100)")
+		*config.parallel = 100
+	} else if *config.parallel > 256 {
+		argWarning("-p", "Cannot be greater than 256, value corrected to 256")
+		*config.parallel = 256
 	}
 
 	// decide on cipher used
