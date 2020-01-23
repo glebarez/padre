@@ -80,6 +80,10 @@ func isPaddingError(cipher []byte, ctx *context.Context) (bool, error) {
 				contentType = http.DetectContentType([]byte(data))
 			}
 		}
+		/* clone header before changing:
+		1. we don't mess with original template header it was set to at fiest
+		2.  to make it concurrency-save, otherwise expect panic */
+		req.Header = req.Header.Clone()
 		req.Header["Content-Type"] = []string{contentType}
 	}
 

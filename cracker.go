@@ -173,7 +173,7 @@ func findGoodByte(chunk []byte, pos int, original byte) (bool, byte, error) {
 	chanErr := make(chan error)
 	chanVal := make(chan byte)
 	chanPara := make(chan byte, *config.parallel)
-	chanDone := make(chan byte, *config.parallel)
+	chanDone := make(chan byte, 0xff)
 
 	for i := 0; i <= 0xff; i++ {
 		tamperedByte := byte(i)
