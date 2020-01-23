@@ -109,9 +109,9 @@ func (p *hackyBar) listenAndPrint() {
 			lastPrint = time.Now()
 		}
 
-		// return if it's time
+		//  exit if it's time
 		if stop {
-			p.wg.Done()
+			p.wg.Done() // just to let know those waiting for you to die
 			return
 		}
 	}
@@ -121,7 +121,7 @@ func (p *hackyBar) listenAndPrint() {
 func (p *hackyBar) buildStatusString(hacky bool) string {
 	randLen := p.plainLen - p.decipheredCount
 
-	plain := fmt.Sprintf("%s%s", randString(randLen, hacky), greenBold(p.decipheredPlain))
+	plain := fmt.Sprintf("%s%s", unknownString(randLen, hacky), greenBold(p.decipheredPlain))
 
 	status := fmt.Sprintf(
 		"%80s (%d/%d) | Requests made: %d (%d/sec)",
@@ -217,11 +217,10 @@ func (p *processingStatus) reportPlainByte(b byte) {
 	p.bar.chanPlain <- b
 }
 
-// function to use by external http client that yet-another requiest was made
+// function to use by external http client to report that yet-another requiest was made
 func (p *processingStatus) reportHTTPRequest() {
-	// http client can make requets outside of bar scope (e.g. pre-flight checks)
+	// http client can make requets outside of bar scope (e.g. pre-flight checks), those do not count
 	if p.bar != nil {
 		p.bar.chanReq <- 1
 	}
-
 }

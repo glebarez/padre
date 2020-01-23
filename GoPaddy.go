@@ -7,16 +7,6 @@ import (
 	"github.com/mattn/go-isatty"
 )
 
-/* config structure is filled when command line arguments are parsed */
-var config = struct {
-	blockLen     *int
-	parallel     *int
-	URL          *string
-	encoder      encoderDecoder
-	paddingError *string
-	proxyURL     *string
-}{}
-
 func main() {
 	printLogo()
 

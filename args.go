@@ -74,6 +74,17 @@ flag(-proxy)
 	HTTP proxy. e.g. use cmd(-proxy "http://localhost:8080") for Burp or ZAP
 `
 
+/* config structure is filled when command line arguments are parsed */
+var config = struct {
+	blockLen     *int
+	parallel     *int
+	URL          *string
+	encoder      encoderDecoder
+	paddingError *string
+	proxyURL     *string
+	POSTdata     *string
+}{}
+
 func init() {
 	// add some color to usage text
 	re := regexp.MustCompile(`\*required\*`)
@@ -129,6 +140,7 @@ func parseArgs() (ok bool, cipher *string) {
 	config.blockLen = flag.Int("b", 16, "")
 	config.parallel = flag.Int("p", 100, "")
 	config.proxyURL = flag.String("proxy", "", "")
+	config.POSTdata = flag.String("post", "", "")
 
 	// parse
 	flag.Parse()
@@ -183,6 +195,19 @@ func parseArgs() (ok bool, cipher *string) {
 	} else if *config.parallel > 256 {
 		argWarning("-p", "Cannot be greater than 256, value corrected to 256")
 		*config.parallel = 256
+	}
+
+	// general check on URL and POSTdata for having the $ placeholder
+	match1, err := regexp.MatchString(`\$`, *config.URL)
+	if err != nil {
+		argError("-u", err.Error())
+	}
+	match2, err := regexp.MatchString(`\$`, *config.POSTdata)
+	if err != nil {
+		argError("-post", err.Error())
+	}
+	if !(match1 || match2) {
+		argError("-u, -post", "Either URL or POST data must contain the $ placeholder")
 	}
 
 	// decide on cipher used

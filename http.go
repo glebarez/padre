@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -27,9 +26,10 @@ func initHTTP() error {
 	}
 
 	// http client
+	// TODO: more tweaking
 	client = &http.Client{
 		Transport: &http.Transport{
-			MaxConnsPerHost: *config.parallel,
+			MaxConnsPerHost: *config.parallel * 2,
 			Proxy:           http.ProxyURL(proxyURL),
 		},
 	}
@@ -40,12 +40,17 @@ func initHTTP() error {
 	return nil
 }
 
+// replace cipher placeholder in a string with URL-escaped cipher
+func replaceCipherPlaceholder(s string, cipherEncoded string) string {
+	return strings.Replace(s, "$", url.QueryEscape(cipherEncoded), 1)
+}
+
 func isPaddingError(cipher []byte, ctx *context.Context) (bool, error) {
 	// encode the cipher
 	cipherEncoded := config.encoder.encode(cipher)
 
 	// build URL
-	url, err := url.Parse(fmt.Sprintf(strings.Replace(*config.URL, "$", `%s`, 1), url.QueryEscape(cipherEncoded)))
+	url, err := url.Parse(replaceCipherPlaceholder(*config.URL, cipherEncoded))
 	if err != nil {
 		return false, err
 	}
@@ -54,6 +59,28 @@ func isPaddingError(cipher []byte, ctx *context.Context) (bool, error) {
 	req := &http.Request{
 		URL:    url,
 		Header: headers,
+	}
+
+	// upgrade to POST if data is provided
+	if *config.POSTdata != "" {
+		req.Method = "POST"
+		data := replaceCipherPlaceholder(*config.POSTdata, cipherEncoded)
+		req.Body = ioutil.NopCloser(strings.NewReader(data))
+
+		// a simple detection of content-type
+		var contentType string
+
+		if data[0] == '{' || data[0] == '[' {
+			contentType = "application/json"
+		} else {
+			match, _ := regexp.MatchString("([^=]*?=[^=]*?&?)+", data)
+			if match {
+				contentType = "application/x-www-form-urlencoded"
+			} else {
+				contentType = http.DetectContentType([]byte(data))
+			}
+		}
+		req.Header["Content-Type"] = []string{contentType}
 	}
 
 	// add context if passed

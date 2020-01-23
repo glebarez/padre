@@ -12,7 +12,7 @@ import traceback
 import random, time
 
 app = Flask(__name__)
-app.config['DEBUG'] = False
+app.config['DEBUG'] = True
 secret = 'Some really secret key'
 key = hashlib.md5(secret.encode()).digest()
 
@@ -55,12 +55,17 @@ def route_encryptb64():
     # return
     return encode(cipher), 200
 
-@app.route('/decrypt')
+@app.route('/decrypt', methods = ['GET','POST'])
 def route_decrypt():
     # artifical sleep
     time.sleep(random.random()/4 + .1)
+
     # get cipher
-    cipher = request.args.get('cipher',None)
+    if request.method == 'GET':
+        cipher = request.args.get('cipher',None)
+    else:
+        cipher = request.form.get('cipher',None)
+
     if not cipher:
         return 'No cipher', 500
 

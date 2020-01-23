@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-func randString(n int, hacky bool) string {
+func unknownString(n int, hacky bool) string {
 	b := make([]byte, n)
 	for i := range b {
 
