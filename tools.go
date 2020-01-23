@@ -6,9 +6,7 @@ import (
 	"strings"
 )
 
-var hacky = true
-
-func randString(n int) string {
+func randString(n int, hacky bool) string {
 	b := make([]byte, n)
 	for i := range b {
 

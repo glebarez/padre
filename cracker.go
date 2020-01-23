@@ -48,20 +48,21 @@ func decipher(cipherEncoded string) ([]byte, error) {
 	plainText := make([]byte, len(cipher)-blockLen)
 
 	// init new status bar
-	status.startStatusBar(len(plainText))
+	status.openBar(len(plainText))
+	defer status.closeBar()
 
 	// decode every cipher chunk and fill-in the relevant plaintext positions
 	// we move backwards through chunks, though it really doesn't matter
 	for i := len(cipherChunks) - 1; i >= 0; i-- {
 		plainChunk, err := decipherChunk(cipherChunks[i])
 		if err != nil {
+			// report error to current status
 			return nil, err
 		}
 		copy(plainText[i*16:(i+1)*16], plainChunk)
 	}
 
 	// that's it!
-	status.finishStatusBar()
 	return plainText, nil
 }
 
@@ -149,9 +150,7 @@ func decipherChunk(chunk []byte) ([]byte, error) {
 		plainText[pos] = foundByte ^ originalByte ^ currPaddingValue
 
 		// report to current status about deciphered plain byte
-		if currentStatus != nil {
-			currentStatus.chanPlain <- plainText[pos]
-		}
+		currentStatus.reportPlainByte(plainText[pos])
 
 		/* we need to repair the padding for the next shot
 		e.g. we need to adjust the already tampered bytes block*/

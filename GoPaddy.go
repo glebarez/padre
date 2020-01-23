@@ -20,8 +20,8 @@ var config = struct {
 func main() {
 	printLogo()
 
-	/* parse command line arguemnts, this will fill the config strucutre described above
-	exit if not ok */
+	/* parse command line arguemnts, this will fill the config structure
+	exit right away if not ok */
 	ok, cipher := parseArgs()
 	if !ok {
 		return
@@ -50,14 +50,15 @@ func main() {
 	}
 
 	// crack ciphers one by one
-	for i, c := range ciphers {
-		// create new status bar with prefix of cipher order number
-		createStatus(i+1, len(ciphers))
+	initStatus(len(ciphers))
+	for _, c := range ciphers {
+		// create new status bar
+		createNewStatus()
 
 		// decipher
 		plain, err := decipher(c)
 		if err != nil {
-			currentStatus.error(err)
+			printError(err)
 			continue
 		}
 

@@ -86,7 +86,7 @@ func init() {
 	usage = string(re.ReplaceAll([]byte(usage), []byte(cyanBold("$1"))))
 
 	re = regexp.MustCompile(`cipher\(([^\)]*?)\)`)
-	usage = string(re.ReplaceAll([]byte(usage), []byte(yellow("$1"))))
+	usage = string(re.ReplaceAll([]byte(usage), []byte(cyanBold("$1"))))
 
 	re = regexp.MustCompile(`flag\(([^\)]*?)\)`)
 	usage = string(re.ReplaceAll([]byte(usage), []byte(greenBold("$1"))))
@@ -113,7 +113,7 @@ func argError(flag string, text string) {
 }
 
 func argWarning(flag string, text string) {
-	_, err := color.New(color.FgYellow, color.Bold).Fprintf(color.Error, "Parameter %s: %s\n", flag, text)
+	_, err := color.New(color.FgYellow).Fprintf(color.Error, "Parameter %s: %s\n", flag, text)
 	if err != nil {
 		log.Fatal(err)
 	}
