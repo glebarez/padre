@@ -43,6 +43,8 @@ func initHTTP() error {
 func isPaddingError(cipher []byte, ctx *context.Context) (bool, error) {
 	// encode the cipher
 	cipherEncoded := config.encoder.encode(cipher)
+
+	// build URL
 	url, err := url.Parse(fmt.Sprintf(strings.Replace(*config.URL, "$", `%s`, 1), url.QueryEscape(cipherEncoded)))
 	if err != nil {
 		return false, err

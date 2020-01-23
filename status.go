@@ -176,7 +176,7 @@ func (p *processingStatus) _print(s string, sameLine bool) {
 		builder.WriteByte('\r')
 	} else {
 		// well, applying newLine logic to fresh instance is not necessary, really
-		// otherwise we endup having a blank line
+		// otherwise we end up having a blank line
 		if !p.fresh {
 			p.lineIndex++
 			builder.WriteByte('\n')
