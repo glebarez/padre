@@ -11,28 +11,35 @@ import (
 )
 
 var usage = `
-	GoPaddy is a fast tool to decrypt ciphers using padding oracle.
-	For details: link(https://en.wikipedia.org/wiki/Padding_oracle_attack)
+	GoPaddy is a tool to exploit padding oracles, breaking CBC mode encryption.
+	For details see link(https://en.wikipedia.org/wiki/Padding_oracle_attack)
 
 Usage: cmd(GoPaddy [OPTIONS] [CIPHER])
 
 CIPHER *required*
-	the encoded (to plaintext) value of valid cipher, whose value is to be decrypted
+	the encoded (as plaintext) value of valid cipher, whose value is to be decrypted
 	if not passed, GoPaddy will use STDIN, reading ciphers line by line
 	The provided cipher will be internally decoded into bytes, 
-	using specified encoder (see option flag(-e))
+	using specified encoder and replacement rules (see options: flag(-e), flag(-r))
 
 OPTIONS:
 
 flag(-u) *required*
-	URL pattern to send, use cipher($) to define a cipher placeholder,
-	e.g. if url is "http://vulnerable.com/?parameter=cipher($)"
+	URL to request, use cipher($) character to define cipher placeholder for GET request.
+	E.g. if URL is "http://vulnerable.com/?parameter=cipher($)"
 	then HTTP request will be sent as "http://example.com/?parameter=cipher(payload)"
-	the payload will be filled-in as a cipher, encoded using specified rules (see flag(-e) flag)
+	the payload will be filled-in as a cipher, encoded using 
+	specified encoder and replacement rules (see options: flag(-e), flag(-r))
 
 flag(-err) *required*
 	A padding error pattern, HTTP responses will be searched for this string to detect 
-	if padding exception has occured
+	padding oracle. Regex is supported (only response body is matched)
+
+flag(-post)
+	If you want GoPaddy to perform POST requests (instead of GET), 
+	then provide string payload for POST request body in this parameter.
+	Use cipher($) character to define cipher placeholder.
+	The Content-Type will be determined automatically, based on provided data. 
 
 flag(-b)
 	Block length used in cipher (use 16 for AES)
@@ -72,6 +79,7 @@ flag(-p)
 		
 flag(-proxy)
 	HTTP proxy. e.g. use cmd(-proxy "http://localhost:8080") for Burp or ZAP
+
 `
 
 /* config structure is filled when command line arguments are parsed */
@@ -115,7 +123,7 @@ func init() {
 var hadErrors bool
 
 func argError(flag string, text string) {
-	_, err := color.New(color.FgRed, color.Bold).Fprintf(color.Error, "Parameter %s: %s\n", flag, text)
+	_, err := fmt.Fprintln(color.Error, red(fmt.Sprintf("Parameter %s: %s", flag, text)))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -124,7 +132,7 @@ func argError(flag string, text string) {
 }
 
 func argWarning(flag string, text string) {
-	_, err := color.New(color.FgYellow).Fprintf(color.Error, "Parameter %s: %s\n", flag, text)
+	_, err := fmt.Fprintln(color.Error, yellow(fmt.Sprintf("Parameter %s: %s", flag, text)))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -210,7 +218,7 @@ func parseArgs() (ok bool, cipher *string) {
 		argError("-u, -post", "Either URL or POST data must contain the $ placeholder")
 	}
 
-	// decide on cipher used
+	// decide on cipher source
 	switch flag.NArg() {
 	case 0:
 		// no cipher passed, STDIN will be used
@@ -224,7 +232,7 @@ func parseArgs() (ok bool, cipher *string) {
 
 	// print info about errors occured
 	if hadErrors {
-		fmt.Fprintf(color.Error, fmt.Sprintf("run %s to see usage help\n", greenBold("GoPaddy -h")))
+		fmt.Fprintf(color.Error, fmt.Sprintf("\nRun with %s option to see usage help\n\n", cyanBold("-h")))
 		ok = false
 		return
 	}

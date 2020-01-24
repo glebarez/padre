@@ -5,23 +5,34 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Launch",
-            "type": "go",
+            "name": "Python: Current File",
+            "type": "python",
             "request": "launch",
-            "mode": "auto",
-            "program": "${fileDirname}",
-            "env": {},
-            "args": [
-                "-u","http://localhost:5000/decrypt?cipher=$",
-               "-err", "IncorrectPadding",
-               "-post", "cipher=$",
-               "-p","100",
-               "jigNcuWcyzd8QB7E/fm7peYSX9gnh6/gYG5Hmy/Bz7IVHVUM1hFyoCjPREV5efzK"
-            // "-u", "http://35.227.24.107/32123ca149/?post=$",
-            // "-err", "PaddingException",
-            // "-r", "/!+-=~",
-            // "!MhGBB5DAS0khEAOw!9E8pokZNDK-aSlAngY62iA2tteRVzmQbWhYnLMr7ijDzPnk-2DwOLO8hS85V7xHQ6HS!7GMb3!3uv1uaTZNrkWbpq7ne8OyQxX203awAHZpN5!E4bqGBaHOYOscMObTmtKNxkkwuqWEWrt-g3OhpUyuqFmH-CgC00P820kpU2-H8QiN1UJN-W06jV2vS!AmALjxA~~"
-            ]
-        }
+            "program": "${file}",
+            "console": "integratedTerminal"
+        },
+        // {
+        //     "name": "Launch",
+        //     "type": "go",
+        //     "request": "launch",
+        //     "mode": "auto",
+        //     "program": "${fileDirname}",
+        //     "env": {},
+        //     "args": [
+        //         "-u",
+        //         "http://localhost:5000/decrypt?cipher=$",
+        //         "-err",
+        //         "IncorrectPadding",
+        //         "-post",
+        //         "cipher=$",
+        //         "-p",
+        //         "100",
+        //         "jigNcuWcyzd8QB7E/fm7peYSX9gnh6/gYG5Hmy/Bz7IVHVUM1hFyoCjPREV5efzK"
+        //         // "-u", "http://35.227.24.107/32123ca149/?post=$",
+        //         // "-err", "PaddingException",
+        //         // "-r", "/!+-=~",
+        //         // "!MhGBB5DAS0khEAOw!9E8pokZNDK-aSlAngY62iA2tteRVzmQbWhYnLMr7ijDzPnk-2DwOLO8hS85V7xHQ6HS!7GMb3!3uv1uaTZNrkWbpq7ne8OyQxX203awAHZpN5!E4bqGBaHOYOscMObTmtKNxkkwuqWEWrt-g3OhpUyuqFmH-CgC00P820kpU2-H8QiN1UJN-W06jV2vS!AmALjxA~~"
+        //     ]
+        // }
     ]
 }

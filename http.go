@@ -80,9 +80,10 @@ func isPaddingError(cipher []byte, ctx *context.Context) (bool, error) {
 				contentType = http.DetectContentType([]byte(data))
 			}
 		}
-		/* clone header before changing:
-		1. we don't mess with original template header it was set to at fiest
-		2.  to make it concurrency-save, otherwise expect panic */
+
+		/* clone header before changing, so that:
+		1. we don't mess the original template header variable
+		2. to make it concurrency-save, otherwise expect panic */
 		req.Header = req.Header.Clone()
 		req.Header["Content-Type"] = []string{contentType}
 	}
@@ -108,7 +109,7 @@ func isPaddingError(cipher []byte, ctx *context.Context) (bool, error) {
 		return false, err
 	}
 
-	// test for padding oracle error string
+	// test for padding oracle error pattern
 	matched, err := regexp.Match(*config.paddingError, body)
 	if err != nil {
 		return false, err

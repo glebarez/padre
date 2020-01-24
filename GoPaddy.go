@@ -16,6 +16,9 @@ func main() {
 		log.Println(http.ListenAndServe("localhost:6060", nil))
 	}()
 
+	// time.Sleep(10 * time.Second)
+	// defer time.Sleep(10 * time.Second)
+
 	printLogo()
 
 	/* parse command line arguemnts, this will fill the config structure

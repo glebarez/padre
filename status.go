@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"strings"
@@ -155,8 +156,8 @@ func (p *processingStatus) closeBar() {
 	p.bar.wg.Wait()
 	p.bar = nil
 
-	// print new line
-	p._print("", false)
+	// print newLine
+	p.output.Write([]byte("\n"))
 }
 
 func (p *processingStatus) _print(s string, sameLine bool) {
@@ -187,9 +188,12 @@ func (p *processingStatus) _print(s string, sameLine bool) {
 	if p.lineIndex == 0 {
 		builder.WriteString(cyanBold(p.prefix))
 		builder.WriteByte(' ')
+	} else {
+		// othewise, just put spaces for nice indent
+		builder.Write(bytes.Repeat([]byte{' '}, len(p.prefix)+1))
 	}
 
-	// add the input payload
+	// add the input
 	builder.WriteString(s)
 
 	// output finally
@@ -201,7 +205,7 @@ func (p *processingStatus) printAction(s string) {
 	p._print(yellow(s), true)
 }
 
-// a single printError point of access: if no status is yet exists, just print
+// a single printError point of access: if no status yet exists, just print as usual
 func printError(err error) {
 	errString := redBold(err.Error()) + "\n"
 

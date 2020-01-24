@@ -26,13 +26,17 @@ func decipher(cipherEncoded string) ([]byte, error) {
 	if len(cipher)%blockLen != 0 {
 		return nil, fmt.Errorf("Cipher len is not compatible with block len (%d %% %d != 0)", len(cipher), blockLen)
 	}
-	blockCount := len(cipher)/blockLen - 1
 
 	/* confirm padding oracle */
 	err = confirmOracle(cipher)
 	if err != nil {
 		return nil, err
 	}
+
+	/* get block count and len of original plaintext
+	NOTE: the first block of cipher is considered as IV */
+	blockCount := len(cipher)/blockLen - 1
+	plainLen := blockCount * blockLen
 
 	/* now, we gonna tamper at every block separately,
 	thus we need to split up the whole payload into blockSize*2 sized chunks
@@ -45,10 +49,10 @@ func decipher(cipherEncoded string) ([]byte, error) {
 	}
 
 	// create container for a final plaintext
-	plainText := make([]byte, len(cipher)-blockLen)
+	plainText := make([]byte, plainLen)
 
 	// init new status bar
-	status.openBar(len(plainText))
+	status.openBar(plainLen)
 	defer status.closeBar()
 
 	// decode every cipher chunk and fill-in the relevant plaintext positions
@@ -146,7 +150,7 @@ func decipherChunk(chunk []byte) ([]byte, error) {
 		}
 
 		// okay, now that we found the byte that fits, we can reveal the plaintext byte with some XOR magic
-		currPaddingValue := byte(16 - pos)
+		currPaddingValue := byte(blockLen - pos)
 		plainText[pos] = foundByte ^ originalByte ^ currPaddingValue
 
 		// report to current status about deciphered plain byte
@@ -216,7 +220,7 @@ func findGoodByte(chunk []byte, pos int, original byte) (bool, byte, error) {
 		}(tamperedByte)
 	}
 
-	// now process the results
+	// process the results
 	done := 0
 	for {
 		select {
