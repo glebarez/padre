@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"math/rand"
 	"strings"
 	"sync"
 	"time"
@@ -21,21 +22,44 @@ var (
 	currentID     int               // id of currently active status
 )
 
+// global init, to tell how many ciphers if there to crack
 func initStatus(total int) {
 	totalCount = total
 }
 
-// the status handle
-type processingStatus struct {
-	output    io.Writer
-	prefix    string
-	lineIndex int
-	width     int
-	fresh     bool
-	bar       *hackyBar
+/* generates string that represents the yet-unrevealed portion of plaintext
+if in hacky mode, will produce random characters */
+func unknownString(n int, hacky bool) string {
+	b := make([]byte, n)
+	for i := range b {
+
+		if hacky {
+			b[i] = byte(rand.Intn(126-33) + 33) // byte from ASCII printable range
+		} else {
+			b[i] = '_'
+		}
+	}
+	return string(b)
 }
 
-// dynamically changing hacky bar
+/* escapes unprintable characters without quoting them on sides */
+func escapeChar(char byte) string {
+	str := fmt.Sprintf("%+q", string(char))
+	str = str[1 : len(str)-1]
+	return strings.Replace(str, `\"`, `"`, 1)
+}
+
+/* general status handle */
+type processingStatus struct {
+	output    io.Writer // the output to write into
+	prefix    string    // prefix of current status
+	lineIndex int       // number of last line that was printed on
+	width     int       // available width of terminal
+	fresh     bool      // indocator if status has already even printed something
+	bar       *hackyBar // the dynamically changing, hollywood-stype bar
+}
+
+/* dynamically changing hacky bar */
 type hackyBar struct {
 	// parent
 	status *processingStatus
@@ -62,10 +86,10 @@ type hackyBar struct {
 
 /* creates new status handle */
 func createNewStatus() {
-	// increase the ID
+	// increase the global status ID counter
 	currentID++
 
-	// refresh the current instance
+	// refresh the current global instance
 	currentStatus = &processingStatus{
 		output: color.Error, // we output to colorized error
 		fresh:  true,
@@ -73,6 +97,8 @@ func createNewStatus() {
 	}
 }
 
+/* background goroutine, which collects information about process and progress
+and then prints out the info in hackyBar */
 func (p *hackyBar) listenAndPrint() {
 	lastPrint := time.Now()
 	stop := false
@@ -151,6 +177,7 @@ func (p *processingStatus) openBar(plainLen int) {
 	go p.bar.listenAndPrint()
 }
 
+/* gracefully shutting down the hackyBar goroutine */
 func (p *processingStatus) closeBar() {
 	p.bar.chanStop <- 0
 	p.bar.wg.Wait()
@@ -160,6 +187,7 @@ func (p *processingStatus) closeBar() {
 	p.output.Write([]byte("\n"))
 }
 
+/* printing function in context of status */
 func (p *processingStatus) _print(s string, sameLine bool) {
 	// after first print, currentStatus will become unfresh
 	defer func() {

