@@ -256,9 +256,13 @@ func (p *processingStatus) reportPlainByte(b byte) {
 }
 
 // function to use by external http client to report that yet-another requiest was made
-func (p *processingStatus) reportHTTPRequest() {
+func reportHTTPRequest() {
+	if currentStatus == nil {
+		return
+	}
+
 	// http client can make requets outside of bar scope (e.g. pre-flight checks), those do not count
-	if p.bar != nil {
-		p.bar.chanReq <- 1
+	if currentStatus.bar != nil {
+		currentStatus.bar.chanReq <- 1
 	}
 }

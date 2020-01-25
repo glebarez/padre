@@ -99,7 +99,7 @@ func isPaddingError(cipher []byte, ctx *context.Context) (bool, error) {
 	defer resp.Body.Close()
 
 	// report about made request
-	currentStatus.reportHTTPRequest()
+	reportHTTPRequest()
 
 	// parse the answer
 	body, err := ioutil.ReadAll(resp.Body)

@@ -212,7 +212,7 @@ func findGoodBytes(chunk []byte, pos int, maxCount int) ([]byte, error) {
 	out := make([]byte, 0, maxCount)
 
 	/* communcation channels */
-	chanVal := make(chan byte)
+	chanVal := make(chan byte, 256)
 	chanPara := make(chan byte, *config.parallel)
 	chanPaddingError := make(chan byte, 256)
 	chanErr := make(chan error, 256)
@@ -258,7 +258,7 @@ func findGoodBytes(chunk []byte, pos int, maxCount int) ([]byte, error) {
 		case val := <-chanVal:
 			out = append(out, val)
 			if len(out) == maxCount {
-				close(chanVal) // expect panic if recieved more valid bytes than expected, hehe
+				//close(chanVal) // expect panic if recieved more valid bytes than expected, hehe
 				return out, nil
 			}
 		}
