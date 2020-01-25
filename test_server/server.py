@@ -1,7 +1,10 @@
 # A simple flask web server just to test things out
-from gevent import monkey
-monkey.patch_all()
-from gevent.pywsgi import WSGIServer
+debug = False
+
+if not debug:
+    from gevent import monkey
+    monkey.patch_all()
+    from gevent.pywsgi import WSGIServer
 
 from flask import Flask, request, abort, make_response
 import binascii as ba
@@ -12,7 +15,7 @@ import traceback
 import random, time
 
 app = Flask(__name__)
-app.config['DEBUG'] = True
+app.config['DEBUG'] = False
 secret = 'Some really secret key'
 key = hashlib.md5(secret.encode()).digest()
 
@@ -80,8 +83,10 @@ def route_decrypt():
 
 
 if __name__ == '__main__':
-    # app.run()
-    WSGIServer((
-    "127.0.0.1", # str(HOST)
-    5000,  # int(PORT)
-), app.wsgi_app).serve_forever()
+    if not debug:
+        WSGIServer((
+            "127.0.0.1", # str(HOST)
+            5000,  # int(PORT)
+        ), app.wsgi_app).serve_forever()
+    else:
+        app.run()

