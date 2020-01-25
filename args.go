@@ -22,8 +22,7 @@ Usage: cmd(GoPaddy [OPTIONS] [CIPHER])
 CIPHER *required*
 	the encoded (as plaintext) value of valid cipher, whose value is to be decrypted
 	if not passed, GoPaddy will use STDIN, reading ciphers line by line
-	The provided cipher will be internally decoded into bytes, 
-	using specified encoder and replacement rules (see options: flag(-e), flag(-r))
+	The provided cipher must be encoded as specified in flag(-e) and flag(-r) options. 
 
 OPTIONS:
 
@@ -38,6 +37,20 @@ flag(-err) *required*
 	A padding error pattern, HTTP responses will be searched for this string to detect 
 	padding oracle. Regex is supported (only response body is matched)
 
+flag(-e)
+	Encoding that server uses to present cipher as plaintext in HTTP context.
+	This option is used in conjunction with flag(-r) option (see below)
+	Supported values:
+		b64 (standard base64) *default*
+
+flag(-r)
+	Character replacement rules that vulnerable server applies
+	after encoding ciphers to plaintext payloads.
+	Use odd-length strings, consiting of pairs of characters <OLD><NEW>.
+	Example:
+		If server uses base64, but replaces '/' with '!', '+' with '-', '=' with '~',
+		then use cmd(-r "/!+-=~")
+		
 flag(-cookie)
 	Cookie value to be set in HTTP reqeusts.
 	Use cipher($) character to define cipher placeholder.
@@ -60,34 +73,9 @@ flag(-b)
 		16 *default*
 		32
 
-flag(-e)
-	Encoding/Decoding, used to translate encoded plaintext cipher into bytes (and back)
-	When reading CIPHER, encoding is used backwards, to decode from plaintext to bytes
-	Usually, cipher is encoded to enable passing as a plaintext URL parameter
-	This option is used in conjunction with flag(-r) option (see below)
-	Supported values:
-		b64 (standard base64) *default*
-
-flag(-r)
-	Character replacement rules that vulnerable server applies
-	after encoding ciphers to plaintext payloads.
-	Use odd-length strings, consiting of pairs of characters <OLD><NEW>.
-	Example:
-		Generally, using standard base64 encoding is not suitable to pass ciphers
-		in URL parameters. This is because standard base64 cotains characters: /,+,=
-		Those have special meaning in URL syntax, therefore, some servers will
-		further replace some of characters with others.
-		E.g. if server uses base64, but replaces '/' with '!', '+' with '-', '=' with '~',
-		then use cmd(-r "/!+-=~")
-	link(NOTE:)
-		these replacements will be internally applied in reverse direction
-		before decoding plaintext cipher into bytes
-
 flag(-p)
-	Number of parallel HTTP connections established to target server
-	The more connections, the faster is cracking speed
-	If passed value is greater than 256, it will be reduced to 256
-		100 *default*
+	Number of parallel HTTP connections established to target server [1-256]
+		30 *default*
 		
 flag(-proxy)
 	HTTP proxy. e.g. use cmd(-proxy "http://localhost:8080") for Burp or ZAP
@@ -105,6 +93,7 @@ var config = struct {
 	POSTdata     *string
 	contentType  *string
 	cookies      []*http.Cookie
+	termWidth    int
 }{}
 
 func init() {
@@ -126,6 +115,13 @@ func init() {
 
 	re = regexp.MustCompile(`link\(([^\)]*?)\)`)
 	usage = string(re.ReplaceAll([]byte(usage), []byte(underline("$1"))))
+
+	// get terminal width
+	config.termWidth = consoleWidth()
+	if config.termWidth == -1 {
+		argWarning("", "Couldn't determine your terminal width. Falling back to 80")
+		config.termWidth = 80 // fallback
+	}
 
 	// a custom usage
 	flag.Usage = func() {
@@ -205,7 +201,7 @@ func parseArgs() (ok bool, cipher *string) {
 
 	config.paddingError = flag.String("err", "", "")
 	config.blockLen = flag.Int("b", 16, "")
-	config.parallel = flag.Int("p", 100, "")
+	config.parallel = flag.Int("p", 30, "")
 	config.proxyURL = flag.String("proxy", "", "")
 	config.POSTdata = flag.String("post", "", "")
 	config.contentType = flag.String("ct", "", "")

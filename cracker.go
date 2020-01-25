@@ -258,7 +258,6 @@ func findGoodBytes(chunk []byte, pos int, maxCount int) ([]byte, error) {
 		case val := <-chanVal:
 			out = append(out, val)
 			if len(out) == maxCount {
-				//close(chanVal) // expect panic if recieved more valid bytes than expected, hehe
 				return out, nil
 			}
 		}
