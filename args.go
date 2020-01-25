@@ -50,7 +50,7 @@ flag(-r)
 	Example:
 		If server uses base64, but replaces '/' with '!', '+' with '-', '=' with '~',
 		then use cmd(-r "/!+-=~")
-		
+
 flag(-cookie)
 	Cookie value to be set in HTTP reqeusts.
 	Use cipher($) character to define cipher placeholder.
@@ -278,7 +278,7 @@ func parseArgs() (ok bool, cipher *string) {
 		}
 	}
 
-	// general check on URL and POSTdata for having the $ placeholder
+	// general check on URL, POSTdata or Cookies for having the $ placeholder
 	match1, err := regexp.MatchString(`\$`, *config.URL)
 	if err != nil {
 		argError("-u", err.Error())
@@ -287,8 +287,12 @@ func parseArgs() (ok bool, cipher *string) {
 	if err != nil {
 		argError("-post", err.Error())
 	}
-	if !(match1 || match2) {
-		argError("-u, -post", "Either URL or POST data must contain the $ placeholder")
+	match3, err := regexp.MatchString(`\$`, *cookies)
+	if err != nil {
+		argError("-cookie", err.Error())
+	}
+	if !(match1 || match2 || match3) {
+		argError("-u, -post, -cookie", "Either URL,POST data or Cookie must contain the $ placeholder")
 	}
 
 	// decide on cipher source
