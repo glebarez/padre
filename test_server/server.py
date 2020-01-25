@@ -60,7 +60,7 @@ def route_encryptb64():
 
 @app.route('/decrypt', methods = ['GET','POST'])
 def route_decrypt():
-    # artifical sleep
+    # artifical sleep to imitate real-world web server
     time.sleep(random.random()/4 + .1)
 
     # get cipher

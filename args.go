@@ -1,11 +1,14 @@
 package main
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"log"
+	"net/http"
 	"net/url"
 	"regexp"
+	"strings"
 
 	"github.com/fatih/color"
 )
@@ -35,12 +38,21 @@ flag(-err) *required*
 	A padding error pattern, HTTP responses will be searched for this string to detect 
 	padding oracle. Regex is supported (only response body is matched)
 
+flag(-cookie)
+	Cookie value to be set in HTTP reqeusts.
+	Use cipher($) character to define cipher placeholder.
+
 flag(-post)
 	If you want GoPaddy to perform POST requests (instead of GET), 
 	then provide string payload for POST request body in this parameter.
 	Use cipher($) character to define cipher placeholder.
 	The Content-Type will be determined automatically, based on provided data. 
 
+flag(-ct)
+	Content-Type header to be set in HTTP requests.
+	If not specified, Content-Type will be determined automatically.
+	Only applicable if POST requests are used (see flag(-post) options).
+	
 flag(-b)
 	Block length used in cipher (use 16 for AES)
 	Supported values:
@@ -91,6 +103,8 @@ var config = struct {
 	paddingError *string
 	proxyURL     *string
 	POSTdata     *string
+	contentType  *string
+	cookies      []*http.Cookie
 }{}
 
 func init() {
@@ -132,10 +146,53 @@ func argError(flag string, text string) {
 }
 
 func argWarning(flag string, text string) {
-	_, err := fmt.Fprintln(color.Error, yellow(fmt.Sprintf("Parameter %s: %s", flag, text)))
+	var err error
+	if flag != "" {
+		_, err = fmt.Fprintln(color.Error, yellow(fmt.Sprintf("Parameter %s: %s", flag, text)))
+	} else {
+		_, err = fmt.Fprintln(color.Error, yellow(fmt.Sprintf("%s", text)))
+	}
 	if err != nil {
 		log.Fatal(err)
 	}
+}
+
+func parseCookies(cookies string) (cookSlice []*http.Cookie, err error) {
+	// strip quotes if any
+	cookies = strings.Trim(cookies, `"'`)
+
+	// split several cookies into slice
+	cookieS := strings.Split(cookies, ";")
+
+	for _, c := range cookieS {
+		// strip whitespace
+		c = strings.TrimSpace(c)
+
+		// split to name and value
+		nameVal := strings.SplitN(c, "=", 2)
+		if len(nameVal) != 2 {
+			return nil, errors.New("failed to parse cookie")
+		}
+
+		cookSlice = append(cookSlice, &http.Cookie{Name: nameVal[0], Value: nameVal[1]})
+	}
+	return cookSlice, nil
+}
+
+func determineContentType(data string) string {
+	var contentType string
+
+	if data[0] == '{' || data[0] == '[' {
+		contentType = "application/json"
+	} else {
+		match, _ := regexp.MatchString("([^=]*?=[^=]*?&?)+", data)
+		if match {
+			contentType = "application/x-www-form-urlencoded"
+		} else {
+			contentType = http.DetectContentType([]byte(data))
+		}
+	}
+	return contentType
 }
 
 func parseArgs() (ok bool, cipher *string) {
@@ -144,11 +201,14 @@ func parseArgs() (ok bool, cipher *string) {
 	config.URL = flag.String("u", "", "")
 	encoding := flag.String("e", "b64", "")
 	replacements := flag.String("r", "", "")
+	cookies := flag.String("cookie", "", "")
+
 	config.paddingError = flag.String("err", "", "")
 	config.blockLen = flag.Int("b", 16, "")
 	config.parallel = flag.Int("p", 100, "")
 	config.proxyURL = flag.String("proxy", "", "")
 	config.POSTdata = flag.String("post", "", "")
+	config.contentType = flag.String("ct", "", "")
 
 	// parse
 	flag.Parse()
@@ -203,6 +263,23 @@ func parseArgs() (ok bool, cipher *string) {
 	} else if *config.parallel > 256 {
 		argWarning("-p", "Cannot be greater than 256, value corrected to 256")
 		*config.parallel = 256
+	}
+
+	// content-type
+	if *config.POSTdata != "" && *config.contentType == "" {
+		// if not passed, determine automatically
+		var ct string
+		ct = determineContentType(*config.POSTdata)
+		config.contentType = &ct
+		argWarning("", "Content-Type was determined automatically as: "+ct)
+	}
+
+	// cookies
+	if *cookies != "" {
+		config.cookies, err = parseCookies(*cookies)
+		if err != nil {
+			argError("-cookie", err.Error())
+		}
 	}
 
 	// general check on URL and POSTdata for having the $ placeholder
