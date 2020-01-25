@@ -60,6 +60,12 @@ func main() {
 		plain, err := decipher(c)
 		if err != nil {
 			printError(err)
+		}
+
+		closeStatus()
+
+		if err != nil {
+			/* skip the rest for current cipher */
 			continue
 		}
 

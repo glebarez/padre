@@ -1,5 +1,5 @@
 # A simple flask web server just to test things out
-debug = False
+debug = True
 
 if not debug:
     from gevent import monkey

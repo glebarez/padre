@@ -97,6 +97,15 @@ func createNewStatus() {
 	}
 }
 
+func closeStatus() {
+	if currentStatus == nil {
+		panic("No status currently open")
+	}
+
+	fmt.Fprintln(currentStatus.output, "")
+	currentStatus = nil
+}
+
 /* background goroutine, which collects information about process and progress
 and then prints out the info in hackyBar */
 func (p *hackyBar) listenAndPrint() {
@@ -182,9 +191,6 @@ func (p *processingStatus) closeBar() {
 	p.bar.chanStop <- 0
 	p.bar.wg.Wait()
 	p.bar = nil
-
-	// print newLine
-	p.output.Write([]byte("\n"))
 }
 
 /* printing function in context of status */
@@ -200,7 +206,7 @@ func (p *processingStatus) _print(s string, sameLine bool) {
 	builder := &strings.Builder{}
 	builder.Grow(p.width)
 
-	// if same line, prepent with caret return
+	// if same line, prepend with caret return
 	if sameLine {
 		builder.WriteByte('\r')
 	} else {
@@ -235,7 +241,7 @@ func (p *processingStatus) printAction(s string) {
 
 // a single printError point of access: if no status yet exists, just print as usual
 func printError(err error) {
-	errString := redBold(err.Error()) + "\n"
+	errString := redBold(err.Error())
 
 	if currentStatus != nil {
 		currentStatus._print(errString, false)
