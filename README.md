@@ -23,7 +23,7 @@ GoPaddy -u "http://vulnerable.com/login" -post "token=$" -err "Invalid padding" 
 
 - Cookies
 ```console
-GoPaddy -u "http://vulnerable.com/login$" -cookie "auth=$" -err "Invalid padding" "u7bvLewln6PJ670Gnj3hnE40L0SqG8e6"
+GoPaddy -u "http://vulnerable.com/login" -cookie "auth=$" -err "Invalid padding" "u7bvLewln6PJ670Gnj3hnE40L0SqG8e6"
 ````
 
 ### Usage
