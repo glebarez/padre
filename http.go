@@ -7,7 +7,6 @@ import (
 	"net/url"
 	"regexp"
 	"strings"
-	"time"
 )
 
 var client *http.Client
@@ -32,7 +31,6 @@ func initHTTP() error {
 		Transport: &http.Transport{
 			MaxConnsPerHost: *config.parallel * 2,
 			Proxy:           http.ProxyURL(proxyURL),
-			IdleConnTimeout: time.Second * 5,
 		},
 	}
 
