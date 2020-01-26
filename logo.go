@@ -20,7 +20,14 @@ func printLogo() {
 	if config.termWidth < 46 {
 		return
 	}
-	indent := strings.Repeat(" ", (config.termWidth-44)/2)
+
+	// to wide not cool when centered
+	width := config.termWidth
+	if width > 100 {
+		width = 100
+	}
+
+	indent := strings.Repeat(" ", (width-44)/2)
 	cyan := color.New(color.FgCyan)
 
 	for _, s := range strings.Split(logo, "\n") {
