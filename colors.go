@@ -15,10 +15,12 @@ func init() {
 
 var red = color.New(color.FgRed).SprintFunc()
 var bold = color.New(color.Bold).SprintFunc()
-var yellow = color.New(color.FgHiYellow).SprintFunc()
+var yellow = color.New(color.FgYellow).SprintFunc()
 var redBold = color.New(color.FgRed, color.Bold).SprintFunc()
 var cyanBold = color.New(color.FgCyan, color.Bold).SprintFunc()
+var cyan = color.New(color.FgCyan).SprintFunc()
 var greenBold = color.New(color.FgGreen, color.Bold).SprintFunc()
+var green = color.New(color.FgGreen).SprintFunc()
 var hiGreenBold = color.New(color.FgHiGreen, color.Bold).SprintFunc()
 var underline = color.New(color.Underline).SprintFunc()
 var yellowBold = color.New(color.FgYellow, color.Bold).SprintFunc()

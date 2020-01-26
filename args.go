@@ -14,14 +14,14 @@ import (
 )
 
 var usage = `
-	GoPaddy is a tool to exploit padding oracles, breaking CBC mode encryption.
+	A tool to exploit padding oracles, breaking CBC mode encryption.
 	For details see link(https://en.wikipedia.org/wiki/Padding_oracle_attack)
 
 Usage: cmd(GoPaddy [OPTIONS] [CIPHER])
 
-CIPHER *required*
+CIPHER:
 	the encoded (as plaintext) value of valid cipher, whose value is to be decrypted
-	if not passed, GoPaddy will use STDIN, reading ciphers line by line
+	if not passed, GoPaddy will use bold(STDIN), reading ciphers line by line
 	The provided cipher must be encoded as specified in flag(-e) and flag(-r) options. 
 
 OPTIONS:
@@ -58,8 +58,7 @@ flag(-cookie)
 flag(-post)
 	If you want GoPaddy to perform POST requests (instead of GET), 
 	then provide string payload for POST request body in this parameter.
-	Use cipher($) character to define cipher placeholder.
-	The Content-Type will be determined automatically, based on provided data. 
+	Use cipher($) character to define cipher placeholder. 
 
 flag(-ct)
 	Content-Type header to be set in HTTP requests.
@@ -79,6 +78,17 @@ flag(-p)
 		
 flag(-proxy)
 	HTTP proxy. e.g. use cmd(-proxy "http://localhost:8080") for Burp or ZAP
+
+bold(Examples:)
+	Decipher token in GET parameter:
+	cmd(GoPaddy -u "http://vulnerable.com/login?token=$" -err "Invalid padding" "u7bvLewln6PJ670Gnj3hnE40L0SqG8e6")
+	
+	POST data:
+	cmd(GoPaddy -u "http://vulnerable.com/login" -post "token=$" -err "Invalid padding" "u7bvLewln6PJ670Gnj3hnE40L0SqG8e6")
+	
+	Cookies:
+	cmd(GoPaddy -u "http://vulnerable.com/login$" -cookie "auth=$" -err "Invalid padding" "u7bvLewln6PJ670Gnj3hnE40L0SqG8e6")
+	
 
 `
 
@@ -102,10 +112,10 @@ func init() {
 	usage = string(re.ReplaceAll([]byte(usage), []byte(yellow(`(required)`))))
 
 	re = regexp.MustCompile(`\*default\*`)
-	usage = string(re.ReplaceAll([]byte(usage), []byte(greenBold(`(default)`))))
+	usage = string(re.ReplaceAll([]byte(usage), []byte(green(`(default)`))))
 
 	re = regexp.MustCompile(`cmd\(([^\)]*?)\)`)
-	usage = string(re.ReplaceAll([]byte(usage), []byte(cyanBold("$1"))))
+	usage = string(re.ReplaceAll([]byte(usage), []byte(cyan("$1"))))
 
 	re = regexp.MustCompile(`cipher\(([^\)]*?)\)`)
 	usage = string(re.ReplaceAll([]byte(usage), []byte(cyanBold("$1"))))
@@ -115,6 +125,9 @@ func init() {
 
 	re = regexp.MustCompile(`link\(([^\)]*?)\)`)
 	usage = string(re.ReplaceAll([]byte(usage), []byte(underline("$1"))))
+
+	re = regexp.MustCompile(`bold\(([^\)]*?)\)`)
+	usage = string(re.ReplaceAll([]byte(usage), []byte(bold("$1"))))
 
 	// get terminal width
 	config.termWidth = consoleWidth()
