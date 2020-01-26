@@ -65,7 +65,7 @@ func decipher(cipherEncoded string) ([]byte, error) {
 			// report error to current status
 			return nil, err
 		}
-		copy(plainText[i*16:(i+1)*16], plainChunk)
+		copy(plainText[i*blockLen:(i+1)*blockLen], plainChunk)
 	}
 
 	// that's it!

@@ -60,7 +60,7 @@ func isPaddingError(cipher []byte, ctx *context.Context) (bool, error) {
 	// create request
 	req := &http.Request{
 		URL:    url,
-		Header: headers,
+		Header: headers.Clone(),
 	}
 
 	// upgrade to POST if data is provided
@@ -72,7 +72,6 @@ func isPaddingError(cipher []byte, ctx *context.Context) (bool, error) {
 		/* clone header before changing, so that:
 		1. we don't mess the original template header variable
 		2. to make it concurrency-save, otherwise expect panic */
-		req.Header = req.Header.Clone()
 		req.Header["Content-Type"] = []string{*config.contentType}
 	}
 
