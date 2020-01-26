@@ -58,7 +58,7 @@ func isPaddingError(cipher []byte, ctx *context.Context) (bool, error) {
 	// create request
 	req := &http.Request{
 		URL:    url,
-		Header: headers,
+		Header: headers.Clone(),
 	}
 
 	// upgrade to POST if data is provided
@@ -67,25 +67,22 @@ func isPaddingError(cipher []byte, ctx *context.Context) (bool, error) {
 		data := replaceCipherPlaceholder(*config.POSTdata, cipherEncoded)
 		req.Body = ioutil.NopCloser(strings.NewReader(data))
 
-		// a simple detection of content-type
-		var contentType string
-
-		if data[0] == '{' || data[0] == '[' {
-			contentType = "application/json"
-		} else {
-			match, _ := regexp.MatchString("([^=]*?=[^=]*?&?)+", data)
-			if match {
-				contentType = "application/x-www-form-urlencoded"
-			} else {
-				contentType = http.DetectContentType([]byte(data))
-			}
-		}
-
 		/* clone header before changing, so that:
 		1. we don't mess the original template header variable
 		2. to make it concurrency-save, otherwise expect panic */
-		req.Header = req.Header.Clone()
-		req.Header["Content-Type"] = []string{contentType}
+		req.Header["Content-Type"] = []string{*config.contentType}
+	}
+
+	// add cookies if any
+	if config.cookies != nil {
+		for _, c := range config.cookies {
+			// copy template cookie instance, so that we're concurrent-safe
+			cookieCopy := &http.Cookie{Name: c.Name, Value: c.Value}
+			cookieCopy.Value = replaceCipherPlaceholder(cookieCopy.Value, cipherEncoded)
+
+			// add cookie to the requests
+			req.AddCookie(cookieCopy)
+		}
 	}
 
 	// add context if passed
@@ -101,7 +98,7 @@ func isPaddingError(cipher []byte, ctx *context.Context) (bool, error) {
 	defer resp.Body.Close()
 
 	// report about made request
-	currentStatus.reportHTTPRequest()
+	reportHTTPRequest()
 
 	// parse the answer
 	body, err := ioutil.ReadAll(resp.Body)

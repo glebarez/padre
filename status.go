@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"fmt"
 	"io"
 	"math/rand"
@@ -54,8 +53,7 @@ type processingStatus struct {
 	output    io.Writer // the output to write into
 	prefix    string    // prefix of current status
 	lineIndex int       // number of last line that was printed on
-	width     int       // available width of terminal
-	fresh     bool      // indocator if status has already even printed something
+	fresh     bool      // indicator if status has already even printed something
 	bar       *hackyBar // the dynamically changing, hollywood-stype bar
 }
 
@@ -65,8 +63,8 @@ type hackyBar struct {
 	status *processingStatus
 
 	// plaintext length info
-	plainLen        int    // length of overall plain text do deciphered, this is needed for proper formatting
-	decipheredPlain string // plain, deciphered so far
+	plainLen        int    // length of overall plain text to be deciphered, this is needed for proper formatting
+	decipheredPlain string // plaintext, deciphered so far
 	decipheredCount int    // the length of deciphered so far plain, needed because string above may contain escape sequences, thus does not reflect real deciphered length
 
 	// async communications
@@ -93,8 +91,17 @@ func createNewStatus() {
 	currentStatus = &processingStatus{
 		output: color.Error, // we output to colorized error
 		fresh:  true,
-		prefix: fmt.Sprintf("[%d/%d]", currentID, totalCount),
+		prefix: fmt.Sprintf("[%d/%d] ", currentID, totalCount),
 	}
+}
+
+func closeStatus() {
+	if currentStatus == nil {
+		panic("No status currently open")
+	}
+
+	fmt.Fprintln(currentStatus.output, "")
+	currentStatus = nil
 }
 
 /* background goroutine, which collects information about process and progress
@@ -146,18 +153,39 @@ func (p *hackyBar) listenAndPrint() {
 
 // build status string
 func (p *hackyBar) buildStatusString(hacky bool) string {
-	randLen := p.plainLen - p.decipheredCount
-
-	plain := fmt.Sprintf("%s%s", unknownString(randLen, hacky), greenBold(p.decipheredPlain))
-
-	status := fmt.Sprintf(
-		"%80s (%d/%d) | Requests made: %d (%d/sec)",
-		plain,
+	// statistics part of output
+	stats := fmt.Sprintf(
+		"(%d/%d) | reqs: %d (%d/sec)",
 		p.decipheredCount,
 		p.plainLen,
 		p.requestsMade,
 		p.rps)
-	return status
+
+	// plain part
+	unkLen := p.plainLen - p.decipheredCount
+	plain := unknownString(unkLen, hacky) + p.decipheredPlain
+
+	// get plain part to be showed (taking into account available terminal width)
+	leftRoom := config.termWidth - (len(p.status.prefix) + len(plain) + len(stats) + 1) // + 1 for space between stats and plain
+
+	if leftRoom < 0 {
+		/* we actually get to output more than terminal is gonna take, so let's cut things out */
+		cutUpTo := len(plain) + leftRoom - 3 // leftRoom is negative
+		if cutUpTo < 0 {
+			panic("Your terminal is to narrow! Use a real one")
+		}
+		plain = plain[:cutUpTo] + `...`
+	} else {
+		plain += strings.Repeat(" ", leftRoom)
+	}
+
+	// make the deciphered part colorized
+	if len(plain) > unkLen {
+		plain = plain[:unkLen] + hiGreenBold(plain[unkLen:])
+	}
+
+	// build the final string
+	return fmt.Sprintf("%s %s", plain, stats)
 }
 
 /* fires a hacky bar */
@@ -182,9 +210,6 @@ func (p *processingStatus) closeBar() {
 	p.bar.chanStop <- 0
 	p.bar.wg.Wait()
 	p.bar = nil
-
-	// print newLine
-	p.output.Write([]byte("\n"))
 }
 
 /* printing function in context of status */
@@ -198,9 +223,9 @@ func (p *processingStatus) _print(s string, sameLine bool) {
 
 	// create builder for efficiency
 	builder := &strings.Builder{}
-	builder.Grow(p.width)
+	builder.Grow(config.termWidth)
 
-	// if same line, prepent with caret return
+	// if same line, prepend with caret return
 	if sameLine {
 		builder.WriteByte('\r')
 	} else {
@@ -215,13 +240,11 @@ func (p *processingStatus) _print(s string, sameLine bool) {
 	// add prefix only if it's the first line of current status
 	if p.lineIndex == 0 {
 		builder.WriteString(cyanBold(p.prefix))
-		builder.WriteByte(' ')
 	} else {
 		// othewise, just put spaces for nice indent
-		builder.Write(bytes.Repeat([]byte{' '}, len(p.prefix)+1))
+		builder.WriteString(strings.Repeat(" ", len(p.prefix)))
 	}
 
-	// add the input
 	builder.WriteString(s)
 
 	// output finally
@@ -233,9 +256,9 @@ func (p *processingStatus) printAction(s string) {
 	p._print(yellow(s), true)
 }
 
-// a single printError point of access: if no status yet exists, just print as usual
+// a single printError point of entry: if no status yet exists, just prints as usual
 func printError(err error) {
-	errString := redBold(err.Error()) + "\n"
+	errString := redBold(err.Error())
 
 	if currentStatus != nil {
 		currentStatus._print(errString, false)
@@ -244,15 +267,19 @@ func printError(err error) {
 	}
 }
 
-// function to use by external cracker to report about yet-another-plaintext-byte cracked
+// function to be used by external cracker to report about yet-another-plaintext-byte revealed
 func (p *processingStatus) reportPlainByte(b byte) {
 	p.bar.chanPlain <- b
 }
 
-// function to use by external http client to report that yet-another requiest was made
-func (p *processingStatus) reportHTTPRequest() {
+// function to be used by external http client to report that yet-another requiest was made
+func reportHTTPRequest() {
+	if currentStatus == nil {
+		return
+	}
+
 	// http client can make requets outside of bar scope (e.g. pre-flight checks), those do not count
-	if p.bar != nil {
-		p.bar.chanReq <- 1
+	if currentStatus.bar != nil {
+		currentStatus.bar.chanReq <- 1
 	}
 }

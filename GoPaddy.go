@@ -60,23 +60,34 @@ func main() {
 		plain, err := decipher(c)
 		if err != nil {
 			printError(err)
+		}
+
+		closeStatus()
+
+		if err != nil {
+			/* skip the rest for current cipher */
 			continue
 		}
 
 		/* write output only if output is redirected to file
 		because decoded ciphers already will be in status output
 		and printing them again to STDOUT again, will be ugly */
-		if !(isatty.IsTerminal(os.Stdout.Fd()) || isatty.IsCygwinTerminal(os.Stdout.Fd())) {
+		if !isTerminal(os.Stdout) {
 			os.Stdout.Write(append(plain, '\n'))
 		}
 	}
 
-	// flush output afterwards
-	if !(isatty.IsTerminal(os.Stdout.Fd()) || isatty.IsCygwinTerminal(os.Stdout.Fd())) {
+	// flush output afterwards, just in case
+	if !isTerminal(os.Stdout) {
 		err = os.Stdout.Sync()
 		if err != nil {
 			printError(err)
 			os.Exit(1)
 		}
 	}
+}
+
+/* is terminal? */
+func isTerminal(file *os.File) bool {
+	return isatty.IsTerminal(file.Fd()) || isatty.IsCygwinTerminal(file.Fd())
 }

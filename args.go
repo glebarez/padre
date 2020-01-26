@@ -1,26 +1,28 @@
 package main
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"log"
+	"net/http"
 	"net/url"
 	"regexp"
+	"strings"
 
 	"github.com/fatih/color"
 )
 
 var usage = `
-	GoPaddy is a tool to exploit padding oracles, breaking CBC mode encryption.
+	A tool to exploit padding oracles, breaking CBC mode encryption.
 	For details see link(https://en.wikipedia.org/wiki/Padding_oracle_attack)
 
 Usage: cmd(GoPaddy [OPTIONS] [CIPHER])
 
-CIPHER *required*
+CIPHER:
 	the encoded (as plaintext) value of valid cipher, whose value is to be decrypted
-	if not passed, GoPaddy will use STDIN, reading ciphers line by line
-	The provided cipher will be internally decoded into bytes, 
-	using specified encoder and replacement rules (see options: flag(-e), flag(-r))
+	if not passed, GoPaddy will use bold(STDIN), reading ciphers line by line
+	The provided cipher must be encoded as specified in flag(-e) and flag(-r) options. 
 
 OPTIONS:
 
@@ -35,23 +37,8 @@ flag(-err) *required*
 	A padding error pattern, HTTP responses will be searched for this string to detect 
 	padding oracle. Regex is supported (only response body is matched)
 
-flag(-post)
-	If you want GoPaddy to perform POST requests (instead of GET), 
-	then provide string payload for POST request body in this parameter.
-	Use cipher($) character to define cipher placeholder.
-	The Content-Type will be determined automatically, based on provided data. 
-
-flag(-b)
-	Block length used in cipher (use 16 for AES)
-	Supported values:
-		8
-		16 *default*
-		32
-
 flag(-e)
-	Encoding/Decoding, used to translate encoded plaintext cipher into bytes (and back)
-	When reading CIPHER, encoding is used backwards, to decode from plaintext to bytes
-	Usually, cipher is encoded to enable passing as a plaintext URL parameter
+	Encoding that server uses to present cipher as plaintext in HTTP context.
 	This option is used in conjunction with flag(-r) option (see below)
 	Supported values:
 		b64 (standard base64) *default*
@@ -61,24 +48,47 @@ flag(-r)
 	after encoding ciphers to plaintext payloads.
 	Use odd-length strings, consiting of pairs of characters <OLD><NEW>.
 	Example:
-		Generally, using standard base64 encoding is not suitable to pass ciphers
-		in URL parameters. This is because standard base64 cotains characters: /,+,=
-		Those have special meaning in URL syntax, therefore, some servers will
-		further replace some of characters with others.
-		E.g. if server uses base64, but replaces '/' with '!', '+' with '-', '=' with '~',
+		If server uses base64, but replaces '/' with '!', '+' with '-', '=' with '~',
 		then use cmd(-r "/!+-=~")
-	link(NOTE:)
-		these replacements will be internally applied in reverse direction
-		before decoding plaintext cipher into bytes
+
+flag(-cookie)
+	Cookie value to be set in HTTP reqeusts.
+	Use cipher($) character to define cipher placeholder.
+
+flag(-post)
+	If you want GoPaddy to perform POST requests (instead of GET), 
+	then provide string payload for POST request body in this parameter.
+	Use cipher($) character to define cipher placeholder. 
+
+flag(-ct)
+	Content-Type header to be set in HTTP requests.
+	If not specified, Content-Type will be determined automatically.
+	Only applicable if POST requests are used (see flag(-post) options).
+	
+flag(-b)
+	Block length used in cipher (use 16 for AES)
+	Supported values:
+		8
+		16 *default*
+		32
 
 flag(-p)
-	Number of parallel HTTP connections established to target server
-	The more connections, the faster is cracking speed
-	If passed value is greater than 256, it will be reduced to 256
-		100 *default*
+	Number of parallel HTTP connections established to target server [1-256]
+		30 *default*
 		
 flag(-proxy)
 	HTTP proxy. e.g. use cmd(-proxy "http://localhost:8080") for Burp or ZAP
+
+bold(Examples:)
+	Decipher token in GET parameter:
+	cmd(GoPaddy -u "http://vulnerable.com/login?token=$" -err "Invalid padding" "u7bvLewln6PJ670Gnj3hnE40L0SqG8e6")
+	
+	POST data:
+	cmd(GoPaddy -u "http://vulnerable.com/login" -post "token=$" -err "Invalid padding" "u7bvLewln6PJ670Gnj3hnE40L0SqG8e6")
+	
+	Cookies:
+	cmd(GoPaddy -u "http://vulnerable.com/login$" -cookie "auth=$" -err "Invalid padding" "u7bvLewln6PJ670Gnj3hnE40L0SqG8e6")
+	
 
 `
 
@@ -91,6 +101,9 @@ var config = struct {
 	paddingError *string
 	proxyURL     *string
 	POSTdata     *string
+	contentType  *string
+	cookies      []*http.Cookie
+	termWidth    int
 }{}
 
 func init() {
@@ -99,10 +112,10 @@ func init() {
 	usage = string(re.ReplaceAll([]byte(usage), []byte(yellow(`(required)`))))
 
 	re = regexp.MustCompile(`\*default\*`)
-	usage = string(re.ReplaceAll([]byte(usage), []byte(greenBold(`(default)`))))
+	usage = string(re.ReplaceAll([]byte(usage), []byte(green(`(default)`))))
 
 	re = regexp.MustCompile(`cmd\(([^\)]*?)\)`)
-	usage = string(re.ReplaceAll([]byte(usage), []byte(cyanBold("$1"))))
+	usage = string(re.ReplaceAll([]byte(usage), []byte(cyan("$1"))))
 
 	re = regexp.MustCompile(`cipher\(([^\)]*?)\)`)
 	usage = string(re.ReplaceAll([]byte(usage), []byte(cyanBold("$1"))))
@@ -112,6 +125,16 @@ func init() {
 
 	re = regexp.MustCompile(`link\(([^\)]*?)\)`)
 	usage = string(re.ReplaceAll([]byte(usage), []byte(underline("$1"))))
+
+	re = regexp.MustCompile(`bold\(([^\)]*?)\)`)
+	usage = string(re.ReplaceAll([]byte(usage), []byte(bold("$1"))))
+
+	// get terminal width
+	config.termWidth = consoleWidth()
+	if config.termWidth == -1 {
+		argWarning("", "Couldn't determine your terminal width. Falling back to 80")
+		config.termWidth = 80 // fallback
+	}
 
 	// a custom usage
 	flag.Usage = func() {
@@ -132,10 +155,53 @@ func argError(flag string, text string) {
 }
 
 func argWarning(flag string, text string) {
-	_, err := fmt.Fprintln(color.Error, yellow(fmt.Sprintf("Parameter %s: %s", flag, text)))
+	var err error
+	if flag != "" {
+		_, err = fmt.Fprintln(color.Error, yellow(fmt.Sprintf("Parameter %s: %s", flag, text)))
+	} else {
+		_, err = fmt.Fprintln(color.Error, yellow(fmt.Sprintf("%s", text)))
+	}
 	if err != nil {
 		log.Fatal(err)
 	}
+}
+
+func parseCookies(cookies string) (cookSlice []*http.Cookie, err error) {
+	// strip quotes if any
+	cookies = strings.Trim(cookies, `"'`)
+
+	// split several cookies into slice
+	cookieS := strings.Split(cookies, ";")
+
+	for _, c := range cookieS {
+		// strip whitespace
+		c = strings.TrimSpace(c)
+
+		// split to name and value
+		nameVal := strings.SplitN(c, "=", 2)
+		if len(nameVal) != 2 {
+			return nil, errors.New("failed to parse cookie")
+		}
+
+		cookSlice = append(cookSlice, &http.Cookie{Name: nameVal[0], Value: nameVal[1]})
+	}
+	return cookSlice, nil
+}
+
+func determineContentType(data string) string {
+	var contentType string
+
+	if data[0] == '{' || data[0] == '[' {
+		contentType = "application/json"
+	} else {
+		match, _ := regexp.MatchString("([^=]*?=[^=]*?&?)+", data)
+		if match {
+			contentType = "application/x-www-form-urlencoded"
+		} else {
+			contentType = http.DetectContentType([]byte(data))
+		}
+	}
+	return contentType
 }
 
 func parseArgs() (ok bool, cipher *string) {
@@ -144,11 +210,14 @@ func parseArgs() (ok bool, cipher *string) {
 	config.URL = flag.String("u", "", "")
 	encoding := flag.String("e", "b64", "")
 	replacements := flag.String("r", "", "")
+	cookies := flag.String("cookie", "", "")
+
 	config.paddingError = flag.String("err", "", "")
 	config.blockLen = flag.Int("b", 16, "")
-	config.parallel = flag.Int("p", 100, "")
+	config.parallel = flag.Int("p", 30, "")
 	config.proxyURL = flag.String("proxy", "", "")
 	config.POSTdata = flag.String("post", "", "")
+	config.contentType = flag.String("ct", "", "")
 
 	// parse
 	flag.Parse()
@@ -205,7 +274,24 @@ func parseArgs() (ok bool, cipher *string) {
 		*config.parallel = 256
 	}
 
-	// general check on URL and POSTdata for having the $ placeholder
+	// content-type
+	if *config.POSTdata != "" && *config.contentType == "" {
+		// if not passed, determine automatically
+		var ct string
+		ct = determineContentType(*config.POSTdata)
+		config.contentType = &ct
+		argWarning("", "Content-Type was determined automatically as: "+ct)
+	}
+
+	// cookies
+	if *cookies != "" {
+		config.cookies, err = parseCookies(*cookies)
+		if err != nil {
+			argError("-cookie", err.Error())
+		}
+	}
+
+	// general check on URL, POSTdata or Cookies for having the $ placeholder
 	match1, err := regexp.MatchString(`\$`, *config.URL)
 	if err != nil {
 		argError("-u", err.Error())
@@ -214,8 +300,12 @@ func parseArgs() (ok bool, cipher *string) {
 	if err != nil {
 		argError("-post", err.Error())
 	}
-	if !(match1 || match2) {
-		argError("-u, -post", "Either URL or POST data must contain the $ placeholder")
+	match3, err := regexp.MatchString(`\$`, *cookies)
+	if err != nil {
+		argError("-cookie", err.Error())
+	}
+	if !(match1 || match2 || match3) {
+		argError("-u, -post, -cookie", "Either URL,POST data or Cookie must contain the $ placeholder")
 	}
 
 	// decide on cipher source

@@ -1,5 +1,9 @@
-test_server/__pycache__/cry.cpython-37.pyc
 out
 GoPaddy
-test_server/__pycache__/cry.cpython-37.pyc
 .vscode/launch.json
+test_server/demo.sh
+test_server/demoCipher
+test_server/__pycache__/*
+test_server/test_ctf.sh
+test_server/testCiphersCTF.txt
+test_server/testTexts
