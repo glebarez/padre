@@ -32,7 +32,7 @@ func initHTTP() error {
 		Transport: &http.Transport{
 			MaxConnsPerHost: *config.parallel * 2,
 			Proxy:           http.ProxyURL(proxyURL),
-			IdleConnTimeout: time.Second * 3,
+			IdleConnTimeout: time.Second * 5,
 		},
 	}
 
