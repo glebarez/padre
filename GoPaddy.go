@@ -73,15 +73,6 @@ func main() {
 			os.Stdout.Write(append(plain, '\n'))
 		}
 	}
-
-	// flush output afterwards, just in case
-	if !isTerminal(os.Stdout) {
-		err = os.Stdout.Sync()
-		if err != nil {
-			printError(err)
-			os.Exit(1)
-		}
-	}
 }
 
 /* is terminal? */
