@@ -35,17 +35,17 @@ CIPHER:
 
 	the encoded (as plaintext) value of valid cipher, whose value is to be decrypted
 	if not passed, GoPaddy will use STDIN, reading ciphers line by line
-	The provided cipher must be encoded as specified in flag(-e) and flag(-r) options. 
+	The provided cipher must be encoded as specified in **-e** and **-r** options. 
 
 OPTIONS:
 
 -u
 
-	URL to request, use cipher($) character to define cipher placeholder for GET request.
-	E.g. if URL is "http://vulnerable.com/?parameter=cipher($)"
-	then HTTP request will be sent as "http://example.com/?parameter=cipher(payload)"
+	URL to request, use **$** character to define cipher placeholder for GET request.
+	E.g. if URL is "http://vulnerable.com/?parameter=**$**"
+	then HTTP request will be sent as "http://example.com/?parameter=**payload**"
 	the payload will be filled-in as a cipher, encoded using 
-	specified encoder and replacement rules (see options: flag(-e), flag(-r))
+	specified encoder and replacement rules (see options: **-e**, **-r**)
 
 -err
 
@@ -55,7 +55,7 @@ OPTIONS:
 -e
 
 	Encoding that server uses to present cipher as plaintext in HTTP context.
-	This option is used in conjunction with flag(-r) option (see below)
+	This option is used in conjunction with **-r** option (see below)
 	Supported values:
 		b64 (standard base64) *default*
 
@@ -66,24 +66,24 @@ OPTIONS:
 	Use odd-length strings, consiting of pairs of characters <OLD><NEW>.
 	Example:
 		If server uses base64, but replaces '/' with '!', '+' with '-', '=' with '~',
-		then use cmd(-r "/!+-=~")
+		then use **-r "/!+-=~"**
 
 -cookie
 
 	Cookie value to be set in HTTP reqeusts.
-	Use cipher($) character to define cipher placeholder.
+	Use **$** character to define cipher placeholder.
 
 -post
 
 	If you want GoPaddy to perform POST requests (instead of GET), 
 	then provide string payload for POST request body in this parameter.
-	Use cipher($) character to define cipher placeholder. 
+	Use **$** character to define cipher placeholder. 
 
 -ct
 
 	Content-Type header to be set in HTTP requests.
 	If not specified, Content-Type will be determined automatically.
-	Only applicable if POST requests are used (see flag(-post) options).
+	Only applicable if POST requests are used (see **-post** options).
 	
 -b
 
@@ -100,4 +100,4 @@ OPTIONS:
 		
 -proxy
 
-	HTTP proxy. e.g. use cmd(-proxy "http://localhost:8080") for Burp or ZAP
+	HTTP proxy. e.g. use **-proxy "http://localhost:8080"** for Burp or ZAP
