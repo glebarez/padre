@@ -25,6 +25,10 @@ GoPaddy -u "http://vulnerable.com/login" -post "token=$" -err "Invalid padding" 
 ```console
 GoPaddy -u "http://vulnerable.com/login" -cookie "auth=$" -err "Invalid padding" "u7bvLewln6PJ670Gnj3hnE40L0SqG8e6"
 ````
+### Note on tool chaining
+All the fancy stuff (logo and progress tracking) is spilled to STDERR. <br>
+You may safely redirect tool's STDOUT to a file or pipe it with another tool. <br>
+Only succesfully decrypted values will be written to redirection target.
 
 ### Usage
 ```console
@@ -33,9 +37,11 @@ GoPaddy [OPTIONS] [CIPHER]
 
 CIPHER:
 
-	the encoded (as plaintext) value of valid cipher, whose value is to be decrypted
-	if not passed, GoPaddy will use STDIN, reading ciphers line by line
-	The provided cipher must be encoded as specified in -e and -r options. 
+	to-be-decrypted value (or token) that a server leaked to you.
+	if not provided, values will be read from STDIN
+	make sure you tip GoPaddy about the encoding nature with options -e and -r
+						(e.g. base64-encoded ciphers)
+	
 
 OPTIONS:
 
