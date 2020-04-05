@@ -42,6 +42,7 @@ flag(-e)
 	This option is used in conjunction with flag(-r) option (see below)
 	Supported values:
 		b64 (standard base64) *default*
+		lhex (lowercase hex)
 
 flag(-r)
 	Character replacement rules that vulnerable server applies
@@ -247,6 +248,8 @@ func parseArgs() (ok bool, cipher *string) {
 		if err != nil {
 			argError("-r", err.Error())
 		}
+	case "lhex":
+		config.encoder, err = createLowerHexEncoderDecoder(*replacements)
 	default:
 		argError("-e", "Unsupported encoding specified")
 	}

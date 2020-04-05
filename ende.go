@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/base64"
+	"encoding/hex"
 	"fmt"
 	"strings"
 )
@@ -14,6 +15,11 @@ type encoderDecoder interface {
 }
 
 type b64 struct {
+	replacerAfterEncoding  *strings.Replacer
+	replacerBeforeDecoding *strings.Replacer
+}
+
+type lhex struct {
 	replacerAfterEncoding  *strings.Replacer
 	replacerBeforeDecoding *strings.Replacer
 }
@@ -40,6 +46,15 @@ func createBase64EncoderDecoder(replaceAfterEncoding string) (encoderDecoder, er
 	return ende, nil
 }
 
+func createLowerHexEncoderDecoder(replaceAfterEncoding string) (encoderDecoder, error) {
+	ende := &lhex{}
+
+	// create replacers
+	ende.replacerAfterEncoding = strings.NewReplacer(strings.Split(replaceAfterEncoding, "")...)
+	ende.replacerBeforeDecoding = strings.NewReplacer(strings.Split(reverseString(replaceAfterEncoding), "")...)
+	return ende, nil
+}
+
 func (b b64) decode(in string) ([]byte, error) {
 	// apply replacer
 	in = b.replacerBeforeDecoding.Replace(in)
@@ -58,4 +73,18 @@ func (b b64) encode(in []byte) string {
 
 	// apply replacer
 	return b.replacerAfterEncoding.Replace(out)
+}
+
+func (l lhex) decode(in string) ([]byte, error) {
+	out, err := hex.DecodeString(in)
+	if err != nil {
+		return nil, err
+	}
+
+	return out, nil
+}
+
+func (l lhex) encode(in []byte) (string) {
+	out := hex.EncodeToString(in)
+	return l.replacerAfterEncoding.Replace(strings.ToLower(out))
 }
