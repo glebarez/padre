@@ -3,9 +3,10 @@ from Crypto.Cipher import AES
 from Crypto.Random import get_random_bytes
 import binascii
 
-def encrypt(data, key, binary = False):
-    if not binary:
-        data = data.encode() # to bytes
+def encrypt(data, key):
+    # convert to bytes if string passed
+    if isinstance(data,(str,)):
+        data = data.encode()
         
     data = pad(data)     # pad for AES
 
