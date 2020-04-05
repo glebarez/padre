@@ -2,10 +2,7 @@ package main
 
 import (
 	"bufio"
-	"log"
 	"os"
-
-	"net/http"
 
 	"github.com/mattn/go-isatty"
 )

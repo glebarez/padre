@@ -69,6 +69,7 @@ OPTIONS:
 	This option is used in conjunction with -r option (see below)
 	Supported values:
 		b64 (standard base64) *default*
+		lhex (lowercase hex)
 
 -r
 
