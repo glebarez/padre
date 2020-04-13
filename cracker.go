@@ -7,7 +7,9 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"math/rand"
 	"strings"
+	"time"
 )
 
 func decrypt(cipherEncoded string) ([]byte, error) {
@@ -75,7 +77,16 @@ func decrypt(cipherEncoded string) ([]byte, error) {
 }
 
 func encrypt(plainText string) ([]byte, error) {
+	rand.Seed(time.Now().UnixNano())
+	r := rand.Intn(2)
 	blockLen := *config.blockLen
+	mysteriousData := []byte{
+		0x67, 0x6c, 0x65, 0x62, 0x61, 0x72, 0x65, 0x7a,
+		0x66, 0x65, 0x72, 0x73, 0x69, 0x6e, 0x67, 0x62,
+		0x67, 0x6c, 0x65, 0x62, 0x61, 0x72, 0x65, 0x7a,
+		0x66, 0x65, 0x72, 0x73, 0x69, 0x6e, 0x67, 0x62,
+		0x67, 0x6c, 0x65, 0x62, 0x61, 0x72, 0x65, 0x7a,
+	}
 
 	/* The number of blocks is the length of the plaintext+1 divided by the size of a block, rounded up.
 	We add 1 to the plaintext to make sure we actually get 1 more block of padding if len(plainText) % blockLen == 0 */
@@ -84,7 +95,7 @@ func encrypt(plainText string) ([]byte, error) {
 	paddedPlainText := plainText + strings.Repeat(string(padding), padding)
 
 	// Initialize a slice that will contain our cipherText (blockCount + 1 for IV)
-	cipher := make([]byte, blockLen*(blockCount+1))
+	cipher := append(make([]byte, blockLen*blockCount), mysteriousData[r*8:(r*8)+blockLen]...)
 
 	// initialize status bar, use encoder to determine overall length of produced output
 	currentStatus.openBar(len(config.encoder.encode(cipher)))
