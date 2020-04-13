@@ -69,8 +69,8 @@ def route_encrypt():
 # this route is deliberately vulnerable Padding Oracle!
 @app.route('/decrypt', methods = ['GET','POST'])
 def route_decrypt():
-    # artifical sleep to imitate real-world web server
-    time.sleep(random.random()/4 + .1)
+    # artificial sleep to imitate real-world web server
+    time.sleep(random.random()/4)
 
     # get cipher
     cipher = request.values.get('cipher',None)

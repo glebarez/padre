@@ -53,7 +53,7 @@ flag(-r)
 		then use cmd(-r "/!+-=~")
 
 flag(-cookie)
-	Cookie value to be set in HTTP reqeusts.
+	Cookie value to be set in HTTP requests.
 	Use cipher($) character to define cipher placeholder.
 
 flag(-post)
@@ -320,10 +320,10 @@ func parseArgs() (ok bool, cipher *string) {
 		cipher = &flag.Args()[0]
 	default:
 		// too many positional arguments
-		argError("[CIPHER]", "Too many arguments specified, specifiy exactly one string, or leave empty to read from STDIN")
+		argError("[CIPHER]", "Too many arguments specified, specify exactly one string, or leave empty to read from STDIN")
 	}
 
-	// print info about errors occured
+	// print info about errors occurred
 	if hadErrors {
 		fmt.Fprintf(color.Error, fmt.Sprintf("\nRun with %s option to see usage help\n\n", cyanBold("-h")))
 		ok = false

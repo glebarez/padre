@@ -88,7 +88,7 @@ func confirmOracle(cipher []byte) error {
 	}
 
 	/* two */
-	status.printAction("Cofirming padding oracle...")
+	status.printAction("Confirming padding oracle...")
 	tamperPos := len(cipher) - *config.blockLen - 1
 	originalByte := cipher[tamperPos]
 	defer func() { cipher[tamperPos] = originalByte }()
@@ -119,7 +119,7 @@ func confirmOracle(cipher []byte) error {
 	return nil
 }
 
-/* deciphers the chunk of cipher, the passed chunk shoule of length blockLen*2 */
+/* deciphers the chunk of cipher, the passed chunk should be of length blockLen*2 */
 func decipherChunk(chunk []byte) ([]byte, error) {
 	blockLen := *config.blockLen
 
@@ -167,7 +167,7 @@ func decipherChunk(chunk []byte) ([]byte, error) {
 			well, something is wrong
 			i mean we just got those bytes without padding errors */
 			if foundByte == nil {
-				return nil, errors.New("Unexpected server behaviour. Aborting")
+				return nil, errors.New("Unexpected server behavior. Aborting")
 			}
 
 			// restore second-to-last byte, remember?
@@ -202,7 +202,7 @@ func decipherChunk(chunk []byte) ([]byte, error) {
 }
 
 /* finds bytes that fit-in without causing the padding oracle
-when finds extected count, cancels all active requests*/
+when finds expected count, cancels all active requests*/
 func findGoodBytes(chunk []byte, pos int, maxCount int) ([]byte, error) {
 	/* the context will be cancelled upon returning from function */
 	ctx, cancel := context.WithCancel(context.Background())

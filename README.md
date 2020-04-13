@@ -28,7 +28,7 @@ GoPaddy -u "http://vulnerable.com/login" -cookie "auth=$" -err "Invalid padding"
 ### Note on tool chaining
 All the fancy stuff (logo and progress tracking) is written to STDERR. <br>
 Thus you may safely redirect STDOUT to a file, or pipe it with another tool. <br>
-Only succesfully decrypted values will be written to redirection target.
+Only successfully decrypted values will be written to redirection target.
 You can supply (multiple) to-be-decrypted values into STDIN as well.
 
 ### Usage
@@ -48,20 +48,20 @@ OPTIONS:
 
 -u
 
-	Vilnerable URL (one that produces padding errors).
-        Use $ character to define cipher placeholder for GET request.
+	Vulnerable URL (one that produces padding errors).
+    Use $ character to define cipher placeholder for GET request.
 	Example:
-           if URL is "http://vulnerable.com/?parameter=$"
-	   then HTTP request will be sent as "http://example.com/?parameter=payload"
-	   the payload will be filled-in as a cipher, encoded using 
-	   specified encoder and replacement rules (see options: -e, -r)
+    	if URL is "http://vulnerable.com/?parameter=$"
+		then HTTP request will be sent as "http://example.com/?parameter=payload"
+		the payload will be filled-in as a cipher, encoded using 
+		specified encoder and replacement rules (see options: -e, -r)
 
 -err
 
 	A padding error string as presented by the server.
-        HTTP responses will be searched for this string to detect 
+    HTTP responses will be searched for this string to detect 
 	padding oracle. Regex is supported.
-        Only response body is matched.
+    Only response body is matched.
 
 -e
 
@@ -81,7 +81,7 @@ OPTIONS:
 
 -cookie
 
-	Cookie value to be decrypted in HTTP reqeusts.
+	Cookie value to be decrypted in HTTP requests.
 	Use $ character to define cipher placeholder.
 
 -post
@@ -96,9 +96,9 @@ OPTIONS:
 -ct
 
 	Content-Type to be set in HTTP requests.
-        This option is only effective when -post option is used.
+    This option is only effective when -post option is used.
 	If not specified, Content-Type will be inferred automatically
-        based on data, provided in -post option.
+    based on data, provided in -post option.
 	
 -b
 

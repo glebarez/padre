@@ -54,7 +54,7 @@ type processingStatus struct {
 	prefix    string    // prefix of current status
 	lineIndex int       // number of last line that was printed on
 	fresh     bool      // indicator if status has already even printed something
-	bar       *hackyBar // the dynamically changing, hollywood-stype bar
+	bar       *hackyBar // the dynamically changing, hollywood-style bar
 }
 
 /* dynamically changing hacky bar */
@@ -68,7 +68,7 @@ type hackyBar struct {
 	decipheredCount int    // the length of deciphered so far plain, needed because string above may contain escape sequences, thus does not reflect real deciphered length
 
 	// async communications
-	chanPlain chan byte      // chan through which real-time communcation about deciphered bytes occures
+	chanPlain chan byte      // chan through which real-time communcation about deciphered bytes occurs
 	chanStop  chan byte      // used to tell async thread that it's time to die...
 	wg        sync.WaitGroup // this wg is used to wait till async thread dies, upon closing the bar
 
@@ -227,7 +227,7 @@ func (p *processingStatus) _print(s string, sameLine bool) {
 
 	// if same line, prepend with caret return
 	if sameLine {
-		builder.WriteByte('\r')
+		builder.WriteString("\x1b\x5b2K\r") // clear line + caret return
 	} else {
 		// well, applying newLine logic to fresh instance is not necessary, really
 		// otherwise we end up having a blank line
@@ -241,7 +241,7 @@ func (p *processingStatus) _print(s string, sameLine bool) {
 	if p.lineIndex == 0 {
 		builder.WriteString(cyanBold(p.prefix))
 	} else {
-		// othewise, just put spaces for nice indent
+		// otherwise, just put spaces for nice indent
 		builder.WriteString(strings.Repeat(" ", len(p.prefix)))
 	}
 
@@ -272,13 +272,13 @@ func (p *processingStatus) reportPlainByte(b byte) {
 	p.bar.chanPlain <- b
 }
 
-// function to be used by external http client to report that yet-another requiest was made
+// function to be used by external http client to report that yet-another request was made
 func reportHTTPRequest() {
 	if currentStatus == nil {
 		return
 	}
 
-	// http client can make requets outside of bar scope (e.g. pre-flight checks), those do not count
+	// http client can make request outside of bar scope (e.g. pre-flight checks), those do not count
 	if currentStatus.bar != nil {
 		currentStatus.bar.chanReq <- 1
 	}

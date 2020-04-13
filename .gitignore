@@ -1,6 +1,6 @@
 out
 GoPaddy
-.vscode/launch.json
+.vscode/
 test_server/demo.sh
 test_server/demoCipher
 test_server/__pycache__/*
