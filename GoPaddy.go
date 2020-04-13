@@ -2,7 +2,6 @@ package main
 
 import (
 	"bufio"
-	"fmt"
 	"os"
 
 	"github.com/mattn/go-isatty"
@@ -54,7 +53,7 @@ func main() {
 			}
 
 			// Find a better way to show this, include it in the status bar?
-			fmt.Fprintf(os.Stderr, "\nEncrypted: %s", config.encoder.encode(cipher))
+			// fmt.Fprintf(os.Stderr, "\nEncrypted: %s", config.encoder.encode(cipher))
 
 			closeStatus()
 

@@ -212,6 +212,13 @@ func (p *processingStatus) closeBar() {
 	p.bar = nil
 }
 
+/* closes the current bar and replaces it with brand-new */
+func (p *processingStatus) resetBar() {
+	plainLen := p.bar.plainLen
+	p.closeBar()
+	p.openBar(plainLen)
+}
+
 /* printing function in context of status */
 func (p *processingStatus) _print(s string, sameLine bool) {
 	// after first print, currentStatus will become unfresh
@@ -270,6 +277,13 @@ func printError(err error) {
 // function to be used by external cracker to report about yet-another-plaintext-byte revealed
 func (p *processingStatus) reportPlainByte(b byte) {
 	p.bar.chanPlain <- b
+}
+
+// replace status bar text completely
+func (p *processingStatus) reportString(str string) {
+	for i := len(str) - 1; i >= 0; i-- {
+		p.reportPlainByte(str[i])
+	}
 }
 
 // function to be used by external http client to report that yet-another request was made

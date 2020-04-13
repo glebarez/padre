@@ -86,6 +86,10 @@ func encrypt(plainText string) ([]byte, error) {
 	// Initialize a slice that will contain our cipherText (blockCount + 1 for IV)
 	cipher := make([]byte, blockLen*(blockCount+1))
 
+	// initialize status bar, use encoder to determine overall length of produced output
+	currentStatus.openBar(len(config.encoder.encode(cipher)))
+	defer currentStatus.closeBar()
+
 	/* Start with the last block and move towards the 1st block.
 	Each block is used successively as a IV and then as a cipherText in the next iteration */
 	for blockNum := blockCount - 1; blockNum >= 0; blockNum-- {
@@ -102,6 +106,10 @@ func encrypt(plainText string) ([]byte, error) {
 		for i, val := range intermediaryBytes {
 			cipher[blockNum*blockLen+i] = paddedPlainText[blockNum*blockLen+i] ^ val
 		}
+
+		// report to status about so-far forget plaintext
+		currentStatus.resetBar()
+		currentStatus.reportString(config.encoder.encode(cipher[blockNum*blockLen:]))
 	}
 	return cipher, nil
 }
@@ -223,7 +231,10 @@ func decryptChunk(chunk []byte) ([]byte, []byte, error) {
 		// report to current status about deciphered plain byte
 		if !*config.encrypt {
 			currentStatus.reportPlainByte(plainText[pos])
+		} else {
+			currentStatus.reportPlainByte('*')
 		}
+
 		/* we need to repair the padding for the next shot
 		e.g. we need to adjust the already tampered bytes block*/
 		intermediaryBytes[pos] = *foundByte ^ currPaddingValue
