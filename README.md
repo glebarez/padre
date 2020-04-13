@@ -33,15 +33,20 @@ You can supply (multiple) to-be-decrypted values into STDIN as well.
 
 ### Usage
 ```console
-GoPaddy [OPTIONS] [CIPHER]
+GoPaddy [OPTIONS] [INPUT]
 ```
 
-CIPHER:
+INPUT:
 
-	to-be-decrypted value (or token) that vulnerable server leaked to you.
-	if not provided, values will be read from STDIN
-	make sure you tip GoPaddy about the encoding nature with options -e and -r
-						(e.g. base64-encoded ciphers)
+	In decrypt mode:
+	the encoded (as plaintext) value of valid cipher, whose value is to be decrypted
+	if not passed, GoPaddy will use STDIN, reading ciphers line by line
+	The provided cipher must be encoded as specified in -e and -r options.
+
+	In encrypt mode:
+	the plaintext to be encrypted
+	if not passed, GoPaddy will use STDIN, reading plaintexts line by line
+
 	
 
 OPTIONS:
@@ -71,6 +76,9 @@ OPTIONS:
 		b64 (standard base64) *default*
 		lhex (lowercase hex)
 
+-enc
+
+    Encrypt mode
 -r
 
 	Character replacement rules that server applies to encoded ciphertext.
