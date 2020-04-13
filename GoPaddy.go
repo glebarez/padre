@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"fmt"
 	"os"
 
 	"github.com/mattn/go-isatty"
@@ -11,9 +12,8 @@ func main() {
 
 	printLogo()
 
-	/* parse command line arguemnts, this will fill the config structure
-	exit right away if not ok */
-	ok, cipher := parseArgs()
+	/* parse command line arguments, this will fill the config structure exit right away if not ok */
+	ok, input := parseArgs()
 	if !ok {
 		return
 	}
@@ -25,47 +25,79 @@ func main() {
 		os.Exit(1)
 	}
 
-	// build list of ciphers
-	ciphers := make([]string, 0)
+	// build list of inputs
+	inputs := make([]string, 0)
 
 	// decide on whether read from STDIN
-	if cipher == nil {
-		// read ciphers from stdin
+	if input == nil {
+		// read inputs from stdin
 		scanner := bufio.NewScanner(os.Stdin)
 		for scanner.Scan() {
-			ciphers = append(ciphers, scanner.Text())
+			inputs = append(inputs, scanner.Text())
 		}
 	} else {
-		// use single cipher, passed in command line
-		ciphers = append(ciphers, *cipher)
+		// use single input, passed in command line
+		inputs = append(inputs, *input)
 	}
 
-	// crack ciphers one by one
-	initStatus(len(ciphers))
-	for _, c := range ciphers {
-		// create new status bar
-		createNewStatus()
+	initStatus(len(inputs))
+	if *config.encrypt {
+		// encrypt inputs one by one
+		for _, c := range inputs {
+			// create new status bar
+			createNewStatus()
 
-		// decipher
-		plain, err := decipher(c)
-		if err != nil {
-			printError(err)
+			// encrypt
+			cipher, err := encrypt(c)
+			if err != nil {
+				printError(err)
+			}
+
+			// Find a better way to show this, include it in the status bar?
+			fmt.Fprintf(os.Stderr, "\nEncrypted: %s", config.encoder.encode(cipher))
+
+			closeStatus()
+
+			if err != nil {
+				/* skip the rest for current input */
+				continue
+			}
+
+			/* write output only if output is redirected to file
+			because encrypted inputs already will be in status output
+			and printing them again to STDOUT again, will be ugly */
+			if !isTerminal(os.Stdout) {
+				os.Stdout.Write(append([]byte(config.encoder.encode(cipher)), '\n'))
+			}
 		}
+	} else {
+		// decrypt inputs one by one
+		for _, c := range inputs {
+			// create new status bar
+			createNewStatus()
 
-		closeStatus()
+			// decrypt
+			plain, err := decrypt(c)
+			if err != nil {
+				printError(err)
+			}
 
-		if err != nil {
-			/* skip the rest for current cipher */
-			continue
-		}
+			closeStatus()
 
-		/* write output only if output is redirected to file
-		because decoded ciphers already will be in status output
-		and printing them again to STDOUT again, will be ugly */
-		if !isTerminal(os.Stdout) {
-			os.Stdout.Write(append(plain, '\n'))
+			if err != nil {
+				/* skip the rest for current input */
+				continue
+			}
+
+			/* write output only if output is redirected to file
+			because decoded inputs already will be in status output
+			and printing them again to STDOUT again, will be ugly */
+			if !isTerminal(os.Stdout) {
+				os.Stdout.Write(append(plain, '\n'))
+			}
 		}
 	}
+
 }
 
 /* is terminal? */
