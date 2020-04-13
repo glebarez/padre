@@ -84,7 +84,7 @@ func (l lhex) decode(in string) ([]byte, error) {
 	return out, nil
 }
 
-func (l lhex) encode(in []byte) (string) {
+func (l lhex) encode(in []byte) string {
 	out := hex.EncodeToString(in)
 	return l.replacerAfterEncoding.Replace(strings.ToLower(out))
 }

