@@ -107,7 +107,7 @@ func encrypt(plainText string) ([]byte, error) {
 			cipher[blockNum*blockLen+i] = paddedPlainText[blockNum*blockLen+i] ^ val
 		}
 
-		// report to status about so-far forget plaintext
+		// report to status about so-far forged plaintext
 		currentStatus.resetBar()
 		currentStatus.reportString(config.encoder.encode(cipher[blockNum*blockLen:]))
 	}
