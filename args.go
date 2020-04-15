@@ -143,7 +143,7 @@ func init() {
 	usage = string(re.ReplaceAll([]byte(usage), []byte(bold("$1"))))
 
 	// get terminal width
-	config.termWidth = consoleWidth()
+	config.termWidth = terminalWidth()
 	if config.termWidth == -1 {
 		argWarning("", "Couldn't determine your terminal width. Falling back to 80")
 		config.termWidth = 80 // fallback
@@ -255,16 +255,17 @@ func parseArgs() (ok bool, cipher *string) {
 	}
 
 	// encoding and replacement
-	switch *encoding {
-	case "b64":
-		config.encoder, err = createBase64EncoderDecoder(*replacements)
-		if err != nil {
-			argError("-r", err.Error())
+	if len(*replacements)%2 == 1 {
+		argError("-r", "String must be of even length")
+	} else {
+		switch *encoding {
+		case "b64":
+			config.encoder = createBase64EncoderDecoder(*replacements)
+		case "lhex":
+			config.encoder = createLowerHexEncoderDecoder(*replacements)
+		default:
+			argError("-e", "Unsupported encoding specified")
 		}
-	case "lhex":
-		config.encoder, err = createLowerHexEncoderDecoder(*replacements)
-	default:
-		argError("-e", "Unsupported encoding specified")
 	}
 
 	// padding error string
@@ -321,7 +322,7 @@ func parseArgs() (ok bool, cipher *string) {
 		argError("-cookie", err.Error())
 	}
 	if !(match1 || match2 || match3) {
-		argError("-u, -post, -cookie", "Either URL,POST data or Cookie must contain the $ placeholder")
+		argError("-u, -post, -cookie", "Either URL, POST data or Cookie must contain the $ placeholder")
 	}
 
 	// decide on cipher source

@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/base64"
 	"encoding/hex"
-	"fmt"
 	"strings"
 )
 
@@ -32,27 +31,22 @@ func reverseString(in string) string {
 	return out.String()
 }
 
-func createBase64EncoderDecoder(replaceAfterEncoding string) (encoderDecoder, error) {
-	// check input
-	if len(replaceAfterEncoding)%2 == 1 {
-		return nil, fmt.Errorf("String must be of even length")
-	}
-
+func createBase64EncoderDecoder(replaceAfterEncoding string) encoderDecoder {
 	ende := &b64{}
 
 	// create replacers
 	ende.replacerAfterEncoding = strings.NewReplacer(strings.Split(replaceAfterEncoding, "")...)
 	ende.replacerBeforeDecoding = strings.NewReplacer(strings.Split(reverseString(replaceAfterEncoding), "")...)
-	return ende, nil
+	return ende
 }
 
-func createLowerHexEncoderDecoder(replaceAfterEncoding string) (encoderDecoder, error) {
+func createLowerHexEncoderDecoder(replaceAfterEncoding string) encoderDecoder {
 	ende := &lhex{}
 
 	// create replacers
 	ende.replacerAfterEncoding = strings.NewReplacer(strings.Split(replaceAfterEncoding, "")...)
 	ende.replacerBeforeDecoding = strings.NewReplacer(strings.Split(reverseString(replaceAfterEncoding), "")...)
-	return ende, nil
+	return ende
 }
 
 func (b b64) decode(in string) ([]byte, error) {

@@ -3,12 +3,10 @@ package main
 import (
 	"bufio"
 	"os"
-
-	"github.com/mattn/go-isatty"
 )
 
 func main() {
-
+	/* of course some branding */
 	printLogo()
 
 	/* parse command line arguments, this will fill the config structure exit right away if not ok */
@@ -17,17 +15,16 @@ func main() {
 		return
 	}
 
-	// init HTTP client
+	/* initialize HTTP client */
 	err := initHTTP()
 	if err != nil {
 		printError(err)
 		os.Exit(1)
 	}
 
-	// build list of inputs
+	/* build list of inputs */
 	inputs := make([]string, 0)
 
-	// decide on whether read from STDIN
 	if input == nil {
 		// read inputs from stdin
 		scanner := bufio.NewScanner(os.Stdin)
@@ -39,64 +36,48 @@ func main() {
 		inputs = append(inputs, *input)
 	}
 
+	/* globally initialize status subsystem */
 	initStatus(len(inputs))
+
+	/* general processor function to avoid copy-paste later */
+	var do func(string) ([]byte, error)
 	if *config.encrypt {
-		// encrypt inputs one by one
-		for _, c := range inputs {
-			// create new status bar for every input
-			createNewStatus()
-
-			// encrypt
-			cipher, err := encrypt(c)
-			if err != nil {
-				printError(err)
-			}
-
-			closeCurrentStatus()
-
-			if err != nil {
-				/* skip the rest for current input */
-				continue
-			}
-
-			/* write output only if output is redirected to file
-			because encrypted inputs already will be in status output
-			and printing them again to STDOUT again, will be ugly */
-			if !isTerminal(os.Stdout) {
-				os.Stdout.Write(append([]byte(config.encoder.encode(cipher)), '\n'))
-			}
-		}
+		do = encrypt
 	} else {
-		// decrypt inputs one by one
-		for _, c := range inputs {
-			// create new status bar
-			createNewStatus()
+		do = decrypt
+	}
 
-			// decrypt
-			plain, err := decrypt(c)
-			if err != nil {
-				printError(err)
+	/* process inputs one by one */
+	for _, c := range inputs {
+		// create new status bar for every input
+		createNewStatus()
+
+		// do the work
+		output, err := do(c)
+		if err != nil {
+			printError(err)
+		}
+
+		// close status for current input
+		closeCurrentStatus()
+
+		/* in case of error, skip to the next input */
+		if err != nil {
+			continue
+		}
+
+		/* write output only if output is redirected to file
+		because encrypted inputs already will be in status output
+		and printing them again to STDOUT again, will be ugly */
+		if !isTerminal(os.Stdout) {
+			/* in case of encryption, additionally encode the produced output */
+			if *config.encrypt {
+				output = []byte(config.encoder.encode(output))
 			}
 
-			closeCurrentStatus()
-
-			if err != nil {
-				/* skip the rest for current input */
-				continue
-			}
-
-			/* write output only if output is redirected to file
-			because decoded inputs already will be in status output
-			and printing them again to STDOUT again, will be ugly */
-			if !isTerminal(os.Stdout) {
-				os.Stdout.Write(append(plain, '\n'))
-			}
+			/* write to standard output */
+			os.Stdout.Write(append(output, '\n'))
 		}
 	}
 
-}
-
-/* is terminal? */
-func isTerminal(file *os.File) bool {
-	return isatty.IsTerminal(file.Fd()) || isatty.IsCygwinTerminal(file.Fd())
 }
