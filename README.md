@@ -44,8 +44,8 @@ GoPaddy -u "http://vulnerable.com/login?token=$" -err "Invalid padding" -enc -e 
 ### Note on tool chaining
 All the fancy stuff (logo and progress tracking) is written to STDERR. <br>
 Thus you may safely redirect STDOUT to a file, or pipe it with another tool. <br>
-Only successfully decrypted values will be written to redirection target.
-You can supply (multiple) to-be-decrypted values into STDIN as well.
+Only successfully processed values will be written to redirection target. <br>
+You can supply (multiple) input values into STDIN as well.
 
 ### Usage
 ```console
