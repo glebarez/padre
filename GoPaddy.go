@@ -43,7 +43,7 @@ func main() {
 	if *config.encrypt {
 		// encrypt inputs one by one
 		for _, c := range inputs {
-			// create new status bar
+			// create new status bar for every input
 			createNewStatus()
 
 			// encrypt
@@ -52,10 +52,7 @@ func main() {
 				printError(err)
 			}
 
-			// Find a better way to show this, include it in the status bar?
-			// fmt.Fprintf(os.Stderr, "\nEncrypted: %s", config.encoder.encode(cipher))
-
-			closeStatus()
+			closeCurrentStatus()
 
 			if err != nil {
 				/* skip the rest for current input */
@@ -81,7 +78,7 @@ func main() {
 				printError(err)
 			}
 
-			closeStatus()
+			closeCurrentStatus()
 
 			if err != nil {
 				/* skip the rest for current input */
