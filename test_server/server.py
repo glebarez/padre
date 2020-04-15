@@ -70,7 +70,7 @@ def route_encrypt():
 @app.route('/decrypt', methods = ['GET','POST'])
 def route_decrypt():
     # artificial sleep to imitate real-world web server
-    time.sleep(random.random()/4)
+    # time.sleep(random.random()/4)
 
     # get cipher
     cipher = request.values.get('cipher',None)
