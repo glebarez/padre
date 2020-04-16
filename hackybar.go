@@ -24,7 +24,7 @@ type hackyBar struct {
 	totalOutputLen int     // total length of expected output, needed for progress tracking
 	output         []byte  // so-far computed output result
 	encoder        encoder // encoder for the byte-output
-
+	overflow       bool    // flag: terminal width overflowed, data was too wide
 	// async communications
 	chanOutput chan int       // delivering every byte of output via this channel, int is used to distingush control magic-numbers from true output bytes
 	chanStop   chan byte      // used to send a stop-signal to goroutine
@@ -91,8 +91,9 @@ func (p *hackyBar) listenAndPrint() {
 		if time.Since(lastPrint) > p.autoUpdateFreq || stop {
 			/* NOTE, we avoid hacky mode (using !stop),
 			this is because stop can be requested when some error happened,
-			it that case we don't need to noise the unprocessed part of output with random noise */
-			p.status._print(p.buildStatusString(!stop), true)
+			it that case we don't need to noise the unprocessed part of output with hacky string */
+			statusString := p.buildStatusString(!stop)
+			p.status._print(statusString, true)
 			lastPrint = time.Now()
 		}
 
@@ -104,45 +105,68 @@ func (p *hackyBar) listenAndPrint() {
 	}
 }
 
-/* constucts full status string to be displayed */
+/* constructs full status string to be displayed */
 func (p *hackyBar) buildStatusString(hacky bool) string {
-	/* generate stats info */
+	/* the hacky-bar string is comprised of following parts |unknownOutput|knownOutput|stats|
+	- unknown output is the part of output that is not yet calculated, it is represented as 'hacky' string
+	- known output is the part of output that is already calculated, it is represented as output, encoded with *p.encoder
+	- stats
+	*/
+
+	/* generate unknown output */
+	unprocessedLen := p.totalOutputLen - len(p.output)
+	if *config.encrypt {
+		unprocessedLen = len(p.encoder.encode(make([]byte, unprocessedLen)))
+	}
+	unknownOutput := unknownString(unprocessedLen, hacky)
+
+	/* generate known output */
+	knownOutput := p.encoder.encode(p.output)
+
+	/* generate stats */
 	stats := fmt.Sprintf(
 		"(%d/%d) | reqs: %d (%d/sec)", len(p.output), p.totalOutputLen, p.requestsMade, p.rps)
 
-	/* calculate the length of hacky string - the part of output that is not yet calculated */
-	unkLen := p.totalOutputLen - len(p.output)
-
-	/* in case of encryption, we must take length of encoded output */
-	if *config.encrypt {
-		unkLen = len(p.encoder.encode(make([]byte, unkLen)))
+	/* get available space in current terminal width */
+	availableSpace := config.termWidth - len(p.status.prefix) - len(stats) - 1 // -1 is for the space between output and stats
+	if availableSpace < 5 {
+		// a general fool-check
+		panic("Your terminal is to narrow. Use a real one")
 	}
 
-	/* produce final output string for hacky bar */
-	data := unknownString(unkLen, hacky) + p.encoder.encode(p.output)
+	/* if we have enough space, the logic is simple */
+	if availableSpace >= len(unknownOutput)+len(knownOutput) {
+		output := unknownOutput + hiGreenBold(knownOutput)
 
-	/* depending on terminal width, we must cut the output part that does not fit */
-	leftRoom := config.termWidth - (len(p.status.prefix) + len(data) + len(stats) + 1) // + 1 for space between stats and plain
-	if leftRoom < 0 {
-		/* we actually get to output more than terminal is gonna take, so let's cut things out */
-		cutUpTo := len(data) + leftRoom - 3 // leftRoom is negative, -3 is for tree dots (see below)
-		if cutUpTo < 0 {
-			panic("Your terminal is to narrow! Use a real one")
-		}
-		data = data[:cutUpTo] + `...`
-	} else {
-		/* when room is enough to output everything
-		just add some padding, so that stats will always be placed in the right edge of terminal */
-		data += strings.Repeat(" ", leftRoom)
+		// pad with spaces to make stats always appear at the right edge of the screen
+		output += strings.Repeat(" ", availableSpace-len(unknownOutput)-len(knownOutput))
+		return fmt.Sprintf("%s %s", output, stats)
 	}
 
-	/* make the already computed part of output data colorized green */
-	if len(data) > unkLen {
-		data = data[:unkLen] + hiGreenBold(data[unkLen:])
+	/* if we made it to here, we need to cut the output to fit into the available space
+	the main idea is to choose the split-point - the poisition at which unknown output ends and known output starts */
+
+	// at first, chose at 1/3 of available space
+	splitPoint := availableSpace / 3
+
+	// correct if knownOutput is too short yet
+	if len(knownOutput) < availableSpace-splitPoint {
+		splitPoint = availableSpace - len(knownOutput)
+	} else if len(unknownOutput) < splitPoint {
+		// correct if unknownOutput is too short
+		splitPoint = len(unknownOutput)
 	}
 
-	/* build the final string */
-	return fmt.Sprintf("%s %s", data, stats)
+	// put ... into the end of knownOutput if it's too long
+	if len(knownOutput) > availableSpace-splitPoint {
+		knownOutput = knownOutput[:availableSpace-splitPoint-3] + `...`
+		p.overflow = true
+	}
+
+	outputString := unknownOutput[:splitPoint] + hiGreenBold(knownOutput)
+
+	/* return the final string */
+	return fmt.Sprintf("%s %s", outputString, stats)
 }
 
 /* generates string that represents the yet-unknown portion of output

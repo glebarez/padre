@@ -1,8 +1,10 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"io"
+	"os"
 	"strings"
 	"sync"
 	"time"
@@ -134,6 +136,11 @@ func (p *processingStatus) openBar(outputLen int) {
 func (p *processingStatus) closeBar() {
 	p.bar.chanStop <- 0
 	p.bar.wg.Wait()
+
+	// print warning if overflow occurred and stdout was not redirected
+	if p.bar.overflow && isTerminal(os.Stdout) {
+		printError(errors.New("Output was too wide to fit you terminal. Redirect stdout somewhere to get full output"))
+	}
 	p.bar = nil
 }
 
