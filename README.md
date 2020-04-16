@@ -5,9 +5,9 @@ A fast, Golang, concurrent tool to perform Padding Oracle attacks against CBC mo
 ![demo](demo.gif)
 
 
-### Installation
+### Installation/Update
 ```console
-go get github.com/glebarez/GoPaddy
+go get -u github.com/glebarez/GoPaddy
 ```
 
 ### Examples
