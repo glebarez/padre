@@ -142,4 +142,5 @@ OPTIONS:
 	HTTP proxy. e.g. use -proxy "http://localhost:8080" for Burp or ZAP
 
 -nologo
+
 	Don't show logo. Useful when GoPaddy is used in tool chaining and called many times.
