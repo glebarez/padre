@@ -6,13 +6,15 @@ import (
 )
 
 func main() {
-	/* of course some branding */
-	printLogo()
-
 	/* parse command line arguments, this will fill the config structure exit right away if not ok */
 	ok, input := parseArgs()
 	if !ok {
 		return
+	}
+
+	/* of course some branding */
+	if !*config.nologo {
+		printLogo()
 	}
 
 	/* initialize HTTP client */

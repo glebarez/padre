@@ -89,6 +89,9 @@ flag(-p)
 flag(-proxy)
 	HTTP proxy. e.g. use cmd(-proxy "http://localhost:8080") for Burp or ZAP
 
+flag(-nologo)
+	Don't show logo. Useful when GoPaddy is used in tool chaining and called many times.
+
 bold(Examples:)
 	Decrypt token in GET parameter:
 	cmd(GoPaddy -u "http://vulnerable.com/login?token=$" -err "Invalid padding" "u7bvLewln6PJ670Gnj3hnE40L0SqG8e6")
@@ -117,6 +120,7 @@ var config = struct {
 	cookies      []*http.Cookie
 	termWidth    int
 	encrypt      *bool
+	nologo       *bool
 }{}
 
 func init() {
@@ -151,6 +155,7 @@ func init() {
 
 	// a custom usage
 	flag.Usage = func() {
+		printLogo()
 		fmt.Fprintf(color.Error, usage)
 	}
 }
@@ -232,6 +237,7 @@ func parseArgs() (ok bool, cipher *string) {
 	config.POSTdata = flag.String("post", "", "")
 	config.contentType = flag.String("ct", "", "")
 	config.encrypt = flag.Bool("enc", false, "")
+	config.nologo = flag.Bool("nologo", false, "")
 
 	// parse
 	flag.Parse()
