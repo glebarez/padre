@@ -50,6 +50,8 @@ func main() {
 	}
 
 	/* process inputs one by one */
+	var errCount int // error counter
+
 	for _, c := range inputs {
 		// create new status bar for every input
 		createNewStatus()
@@ -58,6 +60,7 @@ func main() {
 		output, err := do(c)
 		if err != nil {
 			printError(err)
+			errCount++
 		}
 
 		// close status for current input
@@ -80,6 +83,11 @@ func main() {
 			/* write to standard output */
 			os.Stdout.Write(append(output, '\n'))
 		}
+	}
+
+	/* non-zero return code if all inputs were errornous */
+	if len(inputs) == errCount {
+		os.Exit(2)
 	}
 
 }
