@@ -1,6 +1,8 @@
 # GoPaddy
 
-A fast, Golang, concurrent tool to perform Padding Oracle attacks against CBC mode encryption.
+A fast, Golang, concurrent tool to perform Padding Oracle attacks against CBC mode encryption.<br>
+**Supports both encryption and decryption** of arbitrary length data and tokens.<br>
+For more info about this attack vector see: https://en.wikipedia.org/wiki/Padding_oracle_attack
 
 ![demo](demo.gif)
 
