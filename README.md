@@ -130,7 +130,7 @@ OPTIONS:
 
 	Block length used in encrypting (always 16 for AES)
 	Supported values:
-		8u
+		8
 		16 *default*
 		32
 
