@@ -50,6 +50,10 @@ func isPaddingError(resp *http.Response, body []byte) (bool, error) {
 // attempts to auto-detect padding oracle fingerprint
 // return nil fingerprint if failed
 func detectPaddingErrorFingerprint(blockLen int) (*fingerprint, error) {
+	/* the context 	will be cancelled upon returning from function */
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	// create random cipher
 	cipher := randomBlock(blockLen * 2)
 	pos := blockLen - 1
@@ -60,7 +64,7 @@ func detectPaddingErrorFingerprint(blockLen int) (*fingerprint, error) {
 	}
 
 	// fingerprint probes
-	chanResult := sendProbes(context.TODO(), cipher, pos, probeFingerprint)
+	chanResult := sendProbes(ctx, cipher, pos, probeFingerprint)
 
 	// collect counts of fingerprints
 	fpMap := map[fingerprint]int{}
@@ -129,6 +133,10 @@ func isPaddingErrorChunk(chunk []byte) (bool, error) {
 // confirms existence of padding oracle
 // returns true if confirmed, false otherwise
 func confirmPaddingOracle(blockLen int) (bool, error) {
+	/* the context 	will be cancelled upon returning from function */
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	// create random cipher
 	cipher := randomBlock(blockLen * 2)
 	pos := blockLen - 1
@@ -139,7 +147,7 @@ func confirmPaddingOracle(blockLen int) (bool, error) {
 	}
 
 	// send probes
-	chanResult := sendProbes(context.TODO(), cipher, pos, probePaddingError)
+	chanResult := sendProbes(ctx, cipher, pos, probePaddingError)
 
 	// count padding errors
 	count := 0
