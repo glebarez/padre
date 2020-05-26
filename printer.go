@@ -12,15 +12,18 @@ import (
 	"github.com/mattn/go-isatty"
 )
 
+var (
+	colorMatcher *regexp.Regexp
+	leftover     string
+	outputStream = color.Error
+)
+
 func init() {
 	// override the standard decision on No-color mode
 	color.NoColor = os.Getenv("TERM") == "dumb" ||
 		(!isatty.IsTerminal(os.Stderr.Fd()) && !isatty.IsCygwinTerminal(os.Stderr.Fd()))
-}
 
-var colorMatcher *regexp.Regexp
-
-func init() {
+	// matcher for coloring terminal sequences
 	colorMatcher = regexp.MustCompile("\033\\[.*?m")
 }
 
@@ -28,9 +31,6 @@ func init() {
 func stripColor(s string) string {
 	return colorMatcher.ReplaceAllString(s, "")
 }
-
-var leftover string
-var outputStream = color.Error
 
 /* status-aware printer */
 func print(s string) {
@@ -106,12 +106,6 @@ func die(e error) {
 	os.Exit(1)
 }
 
-func dieWithHint(e error, hint string) {
-	printError(e)
-	printHint(hint)
-	os.Exit(1)
-}
-
 /* coloring stringers */
 var red = color.New(color.FgRed).SprintFunc()
 var bold = color.New(color.Bold).SprintFunc()
@@ -125,6 +119,7 @@ var hiGreenBold = color.New(color.FgHiGreen, color.Bold).SprintFunc()
 var underline = color.New(color.Underline).SprintFunc()
 var yellowBold = color.New(color.FgYellow, color.Bold).SprintFunc()
 
+// error with hints
 type errWithHints struct {
 	err   error
 	hints []string
