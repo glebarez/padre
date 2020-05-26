@@ -112,7 +112,7 @@ func doRequest(ctx context.Context, cipher []byte) (*http.Response, []byte, erro
 	return resp, body, nil
 }
 
-/* function type that will process probe result */
+/* function type that will process probe result, used in sendProbes() */
 type probeFunc func(*http.Response, []byte) (interface{}, error)
 
 type probeResult struct {
@@ -158,10 +158,10 @@ func sendProbes(ctx context.Context, chunk []byte, pos int, probeFunc probeFunc)
 						return
 					}
 
-					// modify chunk with given byte value and test for padding error
+					// modify byte at given position
 					chunkCopy[pos] = b
 
-					// send HTTP
+					// make HTTP request
 					resp, body, err := doRequest(ctx, chunkCopy)
 					if ctx.Err() == context.Canceled {
 						return
@@ -202,6 +202,6 @@ func sendProbes(ctx context.Context, chunk []byte, pos int, probeFunc probeFunc)
 		close(chanIn)
 	}()
 
-	/* deliver output channels to caller */
+	/* deliver output channel to caller */
 	return chanResult
 }
