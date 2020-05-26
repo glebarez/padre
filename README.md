@@ -89,7 +89,7 @@ OPTIONS:
 	Content-Type for POST requests. If not specified, Content-Type will be determined automatically.
 	
 -b
-	Block length used in cipher (use 16 for AES). Supported values:
+	Block length used in cipher (use 16 for AES). Omit to perform automatic detection. Supported values:
 		8
 		16 *default*
 		32
