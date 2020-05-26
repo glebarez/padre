@@ -47,6 +47,61 @@ Now you can open your browser and set the value of the SESS cookie to the above 
 - providing fake tokens that server will trust
 - generally, broad extension of attack surface
 
+## Full usage options
+```
+Usage: padre [OPTIONS] [INPUT]
+
+INPUT: 
+	In decrypt mode: encrypted data
+	In encrypt mode: the plaintext to be encrypted
+	If not passed, will read from STDIN
+
+	NOTE: binary data is always encoded in HTTP. Tweak encoding rules if needed (see options: -e, -r)
+
+OPTIONS:
+
+-u *required*
+	target URL, use $ character to define token placeholder (if present in URL)
+
+-enc
+	Encrypt mode
+
+-err
+	Regex pattern, HTTP response bodies will be matched against this to detect padding oracle. Omit to perform automatic fingerprinting
+
+-e
+	Encoding to apply to binary data. Supported values:
+		b64 (standard base64) *default*
+		lhex (lowercase hex)
+
+-r
+	Additional replacements to apply after encoding binary data. Use odd-length strings, consiting of pairs of characters <OLD><NEW>.
+	Example:
+		If server uses base64, but replaces '/' with '!', '+' with '-', '=' with '~', then use -r "/!+-=~"
+
+-cookie
+	Cookie value to be set in HTTP requests. Use $ character to mark token placeholder.
+
+-post
+	String data to perform POST requests. Use $ character to mark token placeholder. 
+
+-ct
+	Content-Type for POST requests. If not specified, Content-Type will be determined automatically.
+	
+-b
+	Block length used in cipher (use 16 for AES). Supported values:
+		8
+		16 *default*
+		32
+
+-p
+	Number of parallel HTTP connections established to target server [1-256]
+		30 *default*
+		
+-proxy
+	HTTP proxy. e.g. use -proxy "http://localhost:8080" for Burp or ZAP
+```
+
 ## Further read
 - https://blog.skullsecurity.org/2013/a-padding-oracle-example
 - https://blog.skullsecurity.org/2016/going-the-other-way-with-padding-oracles-encrypting-arbitrary-data
