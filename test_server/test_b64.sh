@@ -1,1 +1,1 @@
-cat testCiphers | go run ../... -u "http://localhost:5000/decrypt?cipher=$" -err IncorrectPadding -p 200 -post "cipher=$" -cookie "token=$" "$@"
+cat testCiphers | go run ../... -u "http://localhost:5000/decrypt" -p 200 -post "cipher=$" "$@"

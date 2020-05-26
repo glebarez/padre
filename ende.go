@@ -3,82 +3,95 @@ package main
 import (
 	"encoding/base64"
 	"encoding/hex"
+	"fmt"
 	"strings"
 )
 
 /* Encoders/Decoders */
 
+// interface
 type encoderDecoder interface {
-	encode([]byte) string
-	decode(string) ([]byte, error)
+	EncodeToString([]byte) string
+	DecodeString(string) ([]byte, error)
 }
 
-type b64 struct {
+/* wrapper for encoderDecoder with characters replacements */
+type encDecWithReplacer struct {
+	ed                     encoderDecoder
 	replacerAfterEncoding  *strings.Replacer
 	replacerBeforeDecoding *strings.Replacer
 }
 
-type lhex struct {
-	replacerAfterEncoding  *strings.Replacer
-	replacerBeforeDecoding *strings.Replacer
+// encode with replacement
+func (r encDecWithReplacer) EncodeToString(input []byte) string {
+	encoded := r.ed.EncodeToString(input)
+	return r.replacerAfterEncoding.Replace(encoded)
 }
 
-func reverseString(in string) string {
-	out := strings.Builder{}
-	for i := len(in) - 1; i >= 0; i-- {
-		out.WriteByte(in[i])
-	}
-	return out.String()
-}
-
-func createBase64EncoderDecoder(replaceAfterEncoding string) encoderDecoder {
-	ende := &b64{}
-
-	// create replacers
-	ende.replacerAfterEncoding = strings.NewReplacer(strings.Split(replaceAfterEncoding, "")...)
-	ende.replacerBeforeDecoding = strings.NewReplacer(strings.Split(reverseString(replaceAfterEncoding), "")...)
-	return ende
-}
-
-func createLowerHexEncoderDecoder(replaceAfterEncoding string) encoderDecoder {
-	ende := &lhex{}
-
-	// create replacers
-	ende.replacerAfterEncoding = strings.NewReplacer(strings.Split(replaceAfterEncoding, "")...)
-	ende.replacerBeforeDecoding = strings.NewReplacer(strings.Split(reverseString(replaceAfterEncoding), "")...)
-	return ende
-}
-
-func (b b64) decode(in string) ([]byte, error) {
-	// apply replacer
-	in = b.replacerBeforeDecoding.Replace(in)
-
-	// decode base64
-	out, err := base64.StdEncoding.DecodeString(in)
+// decode with replacement
+func (r encDecWithReplacer) DecodeString(input string) ([]byte, error) {
+	encoded := r.replacerBeforeDecoding.Replace(input)
+	decoded, err := r.ed.DecodeString(encoded)
 	if err != nil {
-		return nil, err
+		return nil, newErrWithHints(fmt.Errorf("decode error: %w", err), hint.checkEncoding, hint.checkInput)
 	}
-
-	return out, nil
+	return decoded, nil
 }
 
-func (b b64) encode(in []byte) string {
-	out := base64.StdEncoding.EncodeToString(in)
-
-	// apply replacer
-	return b.replacerAfterEncoding.Replace(out)
-}
-
-func (l lhex) decode(in string) ([]byte, error) {
-	out, err := hex.DecodeString(in)
-	if err != nil {
-		return nil, err
+// wrapper creator
+func wrapEncoderDecoder(ed encoderDecoder, replacements string) encoderDecoder {
+	return &encDecWithReplacer{
+		ed:                     ed,
+		replacerAfterEncoding:  strings.NewReplacer(strings.Split(replacements, "")...),
+		replacerBeforeDecoding: strings.NewReplacer(strings.Split(reverseString(replacements), "")...),
 	}
-
-	return out, nil
 }
 
-func (l lhex) encode(in []byte) string {
-	out := hex.EncodeToString(in)
-	return l.replacerAfterEncoding.Replace(strings.ToLower(out))
+// lowercase hex encoder/decoder
+type lhexWrap struct{}
+
+func (h lhexWrap) EncodeToString(input []byte) string {
+	return hex.EncodeToString(input)
+}
+
+func (h lhexWrap) DecodeString(input string) ([]byte, error) {
+	return hex.DecodeString(input)
+}
+
+// ASCII encoder
+type asciiEncoder struct{}
+
+// escapes non standard ASCII with \x notation
+func (e asciiEncoder) EncodeToString(input []byte) string {
+	output := strings.Builder{}
+	for _, b := range input {
+		if b >= 32 && b <= 127 {
+			// ascii printable
+			err := output.WriteByte(b)
+			if err != nil {
+				die(err)
+			}
+		} else {
+			_, err := output.WriteString(fmt.Sprintf("\\x%02x", b))
+			if err != nil {
+				die(err)
+			}
+		}
+	}
+	return output.String()
+}
+
+// ... just to comply with interface
+func (e asciiEncoder) DecodeString(input string) ([]byte, error) {
+	panic("Not implemented")
+}
+
+// constructor for base64
+func createB64encDec(replacements string) encoderDecoder {
+	return wrapEncoderDecoder(base64.StdEncoding, replacements)
+}
+
+// constructor for lowercase hex
+func createLHEXencDec(replacements string) encoderDecoder {
+	return wrapEncoderDecoder(lhexWrap{}, replacements)
 }

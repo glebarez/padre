@@ -85,9 +85,14 @@ def route_decrypt():
         plain = cry.decrypt(cipher, key)
         return plain, 200
     except Exception:
-        response = make_response(traceback.format_exc(),500)
-        response.headers["content-type"] = "text/plain"
-        return response
+        if 'NOTVULN' in os.environ:
+            # non-vulnerable response
+            abort(500)
+        else:
+            response = make_response(traceback.format_exc(),500)
+            response.headers["content-type"] = "text/plain"
+            return response
+            
 
 # main guard
 if __name__ == '__main__':

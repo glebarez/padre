@@ -16,28 +16,43 @@ This bar is designed to be fun and fast-changing.
 It also shows HTTP-client performance in real-time, such as: total http requests sent, average RPS
 NOTE: the hacky-bar is a part of status (see status.go) and cannot be used separately
 */
-type hackyBar struct {
-	// parent status instance
-	status *processingStatus
 
+// output refresh frequency (times/second)
+const updateFreq = 13
+
+type hackyBar struct {
 	// output info
-	totalOutputLen int     // total length of expected output, needed for progress tracking
-	output         []byte  // so-far computed output result
-	encoder        encoder // encoder for the byte-output
-	overflow       bool    // flag: terminal width overflowed, data was too wide
-	// async communications
-	chanOutput chan int       // delivering every byte of output via this channel, int is used to distingush control magic-numbers from true output bytes
-	chanStop   chan byte      // used to send a stop-signal to goroutine
+	outputData    []byte         // container for encoded output
+	outputByteLen int            // total number of bytes in output (before encoding)
+	encoder       encoderDecoder // encoder for the byte-output
+	overflow      bool           // flag: terminal width overflowed, data was too wide
+
+	// communications
+	chanOutput chan byte      // delivering every byte of output via this channel
+	chanStop   chan byte      // used to send a stop-signal to bar
 	wg         sync.WaitGroup // used to wait for gracefull exit after stop signal sent
 
 	// RPS calculation
 	start        time.Time // the time of first request made, needed to properly calculate RPS
 	requestsMade int       // total requests made, needed to calculate RPS
 	rps          int       // RPS
-	chanReq      chan byte
+	chanReq      chan byte // to deliver indicator of yet-another http request made
 
 	// the output properties
 	autoUpdateFreq time.Duration // interval at which the bar must be updated
+}
+
+func createHackyBar(encoder *encoderDecoder, outputLen int) *hackyBar {
+	return &hackyBar{
+		outputData:     []byte{},
+		outputByteLen:  outputLen,
+		wg:             sync.WaitGroup{},
+		chanOutput:     make(chan byte),
+		chanReq:        make(chan byte, *config.parallel),
+		chanStop:       make(chan byte),
+		autoUpdateFreq: time.Second / time.Duration(updateFreq),
+		encoder:        *encoder,
+	}
 }
 
 /* designed to be run as goroutine.
@@ -46,26 +61,14 @@ func (p *hackyBar) listenAndPrint() {
 	lastPrint := time.Now() // time since last print
 	stop := false           // flag: stop requested
 	p.wg.Add(1)
+	defer p.wg.Done()
 
 	/* listen for incoming events */
 	for {
 		select {
 		/* yet another output byte produced */
 		case b := <-p.chanOutput:
-			// normal output byte
-			if b >= 0 && b <= 255 {
-				p.output = append([]byte{byte(b)}, p.output...) //TODO: optimize this
-			} else if b >= ccREPLACEBYTES {
-				// special control character: replace lastly delivered bytes with with new ones
-				for i := 0; i < b-ccREPLACEBYTES; i++ {
-					b := byte(<-p.chanOutput)
-					if len(p.output) > i {
-						p.output[i] = b
-					} else {
-						p.output = append(p.output, b)
-					}
-				}
-			}
+			p.outputData = append([]byte{b}, p.outputData...) //TODO: optimize this
 
 		/* yet another HTTP request was made. Update stats */
 		case <-p.chanReq:
@@ -93,16 +96,21 @@ func (p *hackyBar) listenAndPrint() {
 			this is because stop can be requested when some error happened,
 			it that case we don't need to noise the unprocessed part of output with hacky string */
 			statusString := p.buildStatusString(!stop)
-			p.status._print(statusString, true)
+			currentStatus.print(statusString, true)
 			lastPrint = time.Now()
 		}
 
 		/* exit when stop requested */
 		if stop {
-			p.wg.Done() // just to let know those waiting for you to die
 			return
 		}
 	}
+}
+
+// stops the bar
+func (p *hackyBar) stop() {
+	p.chanStop <- 0
+	p.wg.Wait()
 }
 
 /* constructs full status string to be displayed */
@@ -114,21 +122,21 @@ func (p *hackyBar) buildStatusString(hacky bool) string {
 	*/
 
 	/* generate unknown output */
-	unprocessedLen := p.totalOutputLen - len(p.output)
+	unprocessedLen := p.outputByteLen - len(p.outputData)
 	if *config.encrypt {
-		unprocessedLen = len(p.encoder.encode(make([]byte, unprocessedLen)))
+		unprocessedLen = len(p.encoder.EncodeToString(make([]byte, unprocessedLen)))
 	}
 	unknownOutput := unknownString(unprocessedLen, hacky)
 
 	/* generate known output */
-	knownOutput := p.encoder.encode(p.output)
+	knownOutput := p.encoder.EncodeToString(p.outputData)
 
 	/* generate stats */
 	stats := fmt.Sprintf(
-		"(%d/%d) | reqs: %d (%d/sec)", len(p.output), p.totalOutputLen, p.requestsMade, p.rps)
+		"[%d/%d] | reqs: %d (%d/sec)", len(p.outputData), p.outputByteLen, p.requestsMade, p.rps)
 
 	/* get available space in current terminal width */
-	availableSpace := config.termWidth - len(p.status.prefix) - len(stats) - 1 // -1 is for the space between output and stats
+	availableSpace := config.termWidth - len(currentStatus.prefix) - len(stats) - 1 // -1 is for the space between output and stats
 	if availableSpace < 5 {
 		// a general fool-check
 		panic("Your terminal is to narrow. Use a real one")

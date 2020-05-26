@@ -1,9 +1,6 @@
-out
-GoPaddy
 .vscode/
-test_server/demo.sh
-test_server/demoCipher
 test_server/__pycache__/*
-test_server/test_ctf.sh
-test_server/testCiphersCTF.txt
-test_server/testTexts
+test_server/demoCiphers
+test_server/demoPlains
+test_server/padre
+test_server/venv/
