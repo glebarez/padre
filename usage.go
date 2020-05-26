@@ -57,9 +57,6 @@ flag(-p)
 flag(-proxy)
 	HTTP proxy. e.g. use cmd(-proxy "http://localhost:8080") for Burp or ZAP
 
-flag(-nologo)
-	Don't show logo
-
 bold(Examples:)
 	Decrypt token in GET parameter:	cmd(padre -u "http://vulnerable.com/login?token=$" "u7bvLewln6PJ670Gnj3hnE40L0SqG8e6")
 	POST data: cmd(padre -u "http://vulnerable.com/login" -post "token=$" "u7bvLewln6PJ670Gnj3hnE40L0SqG8e6")
