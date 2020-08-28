@@ -3,10 +3,8 @@ package main
 import (
 	"bufio"
 	"fmt"
-	"log"
 	"os"
 
-	"net/http"
 	_ "net/http/pprof"
 
 	_ "net/http"
@@ -14,11 +12,6 @@ import (
 
 func main() {
 	var err error
-
-	// pprof, remove from release
-	go func() {
-		log.Println(http.ListenAndServe("localhost:6060", nil))
-	}()
 
 	/* parse command line arguments, this will fill the config structure exit right away if not ok */
 	ok, input := parseArgs()
