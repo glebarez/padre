@@ -22,7 +22,7 @@ const updateFreq = 13
 
 type hackyBar struct {
 	// output info
-	outputData    []byte         // container for encoded output
+	outputData    []byte         // container for byte-output
 	outputByteLen int            // total number of bytes in output (before encoding)
 	encoder       encoderDecoder // encoder for the byte-output
 	overflow      bool           // flag: terminal width overflowed, data was too wide
