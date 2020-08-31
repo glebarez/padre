@@ -1,23 +1,28 @@
-package main
+package encoding
 
 import (
 	"encoding/base64"
 	"encoding/hex"
 	"fmt"
 	"strings"
+
+	"github.com/glebarez/padre/pkg/util"
 )
 
-/* Encoders/Decoders */
+// DecodeError ...
+type DecodeError string
 
-// interface
-type encoderDecoder interface {
+func (e DecodeError) Error() string { return string(e) }
+
+// EncoderDecoder - performs encoding/decoding
+type EncoderDecoder interface {
 	EncodeToString([]byte) string
 	DecodeString(string) ([]byte, error)
 }
 
 /* wrapper for encoderDecoder with characters replacements */
 type encDecWithReplacer struct {
-	ed                     encoderDecoder
+	ed                     EncoderDecoder
 	replacerAfterEncoding  *strings.Replacer
 	replacerBeforeDecoding *strings.Replacer
 }
@@ -33,17 +38,18 @@ func (r encDecWithReplacer) DecodeString(input string) ([]byte, error) {
 	encoded := r.replacerBeforeDecoding.Replace(input)
 	decoded, err := r.ed.DecodeString(encoded)
 	if err != nil {
-		return nil, newErrWithHints(fmt.Errorf("decode error: %w", err), hint.checkEncoding, hint.checkInput)
+		return nil, DecodeError(fmt.Sprintf("Decode error: %s", err))
+		// errors.NewErrWithHints(fmt.Errorf("decode error: %w", err), hint.checkEncoding, hint.checkInput)
 	}
 	return decoded, nil
 }
 
 // wrapper creator
-func wrapEncoderDecoder(ed encoderDecoder, replacements string) encoderDecoder {
+func wrapEncoderDecoder(ed EncoderDecoder, replacements string) EncoderDecoder {
 	return &encDecWithReplacer{
 		ed:                     ed,
 		replacerAfterEncoding:  strings.NewReplacer(strings.Split(replacements, "")...),
-		replacerBeforeDecoding: strings.NewReplacer(strings.Split(reverseString(replacements), "")...),
+		replacerBeforeDecoding: strings.NewReplacer(strings.Split(util.ReverseString(replacements), "")...),
 	}
 }
 
@@ -69,12 +75,12 @@ func (e asciiEncoder) EncodeToString(input []byte) string {
 			// ascii printable
 			err := output.WriteByte(b)
 			if err != nil {
-				die(err)
+				panic(err)
 			}
 		} else {
 			_, err := output.WriteString(fmt.Sprintf("\\x%02x", b))
 			if err != nil {
-				die(err)
+				panic(err)
 			}
 		}
 	}
@@ -87,11 +93,11 @@ func (e asciiEncoder) DecodeString(input string) ([]byte, error) {
 }
 
 // constructor for base64
-func createB64encDec(replacements string) encoderDecoder {
+func createB64encDec(replacements string) EncoderDecoder {
 	return wrapEncoderDecoder(base64.StdEncoding, replacements)
 }
 
 // constructor for lowercase hex
-func createLHEXencDec(replacements string) encoderDecoder {
+func createLHEXencDec(replacements string) EncoderDecoder {
 	return wrapEncoderDecoder(lhexWrap{}, replacements)
 }

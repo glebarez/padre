@@ -1,4 +1,4 @@
-package main
+package config
 
 import (
 	"flag"
@@ -7,46 +7,52 @@ import (
 	"net/url"
 	"regexp"
 	"strings"
+
+	"github.com/glebarez/padre/pkg/encoding"
+	"github.com/glebarez/padre/pkg/http"
 )
-
-/* config structure is filled when command line arguments are parsed */
-var config = struct {
-	blockLen                *int
-	parallel                *int
-	URL                     *string
-	encoder                 encoderDecoder
-	paddingErrorPattern     *string
-	paddingErrorFingerprint *fingerprint
-	proxyURL                *string
-	POSTdata                *string
-	contentType             *string
-	cookies                 []*http.Cookie
-	termWidth               int
-	encrypt                 *bool
-}{}
-
-const defaultConcurrency = 30
 
 func init() {
 	// a custom usage
 	flag.Usage = func() {
-		fmt.Fprintf(outputStream, usage)
+		output.Print(usage)
 	}
+}
+
+const defaultConcurrency = 30
+
+// Config - all the settings
+type Args struct {
+	BlockLen                *int
+	Parallel                *int
+	URL                     *string
+	Encoder                 encoding.EncoderDecoder
+	PaddingErrorPattern     *string
+	PaddingErrorFingerprint *http.ResponseFingerprint
+	ProxyURL                *string
+	POSTdata                *string
+	ContentType             *string
+	Cookies                 []*http.Cookie
+	TermWidth               int
+	EncryptMode             *bool
 }
 
 /* overall indicator for flag-parsing errors */
 var hadErrors bool
 
 func argError(flag string, text string) {
-	printError(fmt.Errorf("Parameter %s: %s", flag, text))
+	PrintError(fmt.Errorf("Parameter %s: %s", flag, text))
 	hadErrors = true
 }
 
 func argWarning(flag string, text string) {
-	printWarning(fmt.Sprintf("Parameter %s: %s", flag, text))
+	PrintWarning(fmt.Sprintf("Parameter %s: %s", flag, text))
 }
 
-func parseArgs() (ok bool, input *string) {
+func parseArgs(ok bool, input *string) *Config {
+	// create config struct
+	config := Config{}
+
 	// config flags
 	config.URL = flag.String("u", "", "")
 	config.paddingErrorPattern = flag.String("err", "", "")

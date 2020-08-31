@@ -9,21 +9,6 @@ import (
 	"regexp"
 )
 
-type fingerprint struct {
-	code  int
-	lines int
-	words int
-}
-
-// scrape fingerprint form http response
-func getResponseFingerprint(resp *http.Response, body []byte) (*fingerprint, error) {
-	return &fingerprint{
-		code:  resp.StatusCode,
-		lines: countLines(body),
-		words: countWords(body),
-	}, nil
-}
-
 // check if response contains padding error
 func isPaddingError(resp *http.Response, body []byte) (bool, error) {
 	// try regex matcher if pattern is set

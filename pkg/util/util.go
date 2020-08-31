@@ -1,4 +1,4 @@
-package main
+package util
 
 import (
 	"bytes"
@@ -8,39 +8,10 @@ import (
 	"os"
 	"regexp"
 	"strings"
-	"unicode"
 
 	"github.com/mattn/go-isatty"
 	"github.com/nsf/termbox-go"
 )
-
-// count number of lines in input
-func countLines(input []byte) int {
-	if len(input) == 0 {
-		return 0
-	}
-	count := 1
-	for _, b := range input {
-		if b == '\n' {
-			count++
-		}
-	}
-	return count
-}
-
-// count number of words in input
-func countWords(input []byte) int {
-	inWord, count := false, 0
-	for _, r := range string(input) {
-		if unicode.IsSpace(r) {
-			inWord = false
-		} else if inWord == false {
-			inWord = true
-			count++
-		}
-	}
-	return count
-}
 
 // creates copy of a slice
 func sliceCopy(slice []byte) []byte {
@@ -106,7 +77,7 @@ func detectContentType(data string) string {
 
 // returns reverse of a string
 // does not support runes
-func reverseString(in string) string {
+func ReverseString(in string) string {
 	out := strings.Builder{}
 	for i := len(in) - 1; i >= 0; i-- {
 		out.WriteByte(in[i])

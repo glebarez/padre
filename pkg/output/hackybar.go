@@ -1,4 +1,4 @@
-package main
+package output
 
 import (
 	"fmt"
@@ -6,6 +6,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/glebarez/padre/pkg/encoding"
 )
 
 /*
@@ -22,10 +24,10 @@ const updateFreq = 13
 
 type hackyBar struct {
 	// output info
-	outputData    []byte         // container for byte-output
-	outputByteLen int            // total number of bytes in output (before encoding)
-	encoder       encoderDecoder // encoder for the byte-output
-	overflow      bool           // flag: terminal width overflowed, data was too wide
+	outputData    []byte                  // container for byte-output
+	outputByteLen int                     // total number of bytes in output (before encoding)
+	encoder       encoding.EncoderDecoder // encoder for the byte-output
+	overflow      bool                    // flag: terminal width overflowed, data was too wide
 
 	// communications
 	chanOutput chan byte      // delivering every byte of output via this channel

@@ -4,10 +4,6 @@ import (
 	"bufio"
 	"fmt"
 	"os"
-
-	_ "net/http/pprof"
-
-	_ "net/http"
 )
 
 func main() {

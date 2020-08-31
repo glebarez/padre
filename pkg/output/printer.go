@@ -1,4 +1,4 @@
-package main
+package output
 
 import (
 	"errors"
@@ -33,7 +33,7 @@ func stripColor(s string) string {
 }
 
 /* status-aware printer */
-func print(s string) {
+func Print(s string) {
 	if currentStatus != nil {
 		currentStatus.print(s, false)
 	} else {
@@ -56,7 +56,7 @@ func printWithPrefix(prefix string, message string) {
 }
 
 /* error printer */
-func printError(err error) {
+func PrintError(err error) {
 	// print error message
 	printWithPrefix(redBold("[-]"), red(err))
 
@@ -81,7 +81,7 @@ func printAction(s string) {
 }
 
 /* warning  */
-func printWarning(message string) {
+func PrintWarning(message string) {
 	printWithPrefix(yellowBold("[!]"), message)
 }
 
@@ -104,34 +104,4 @@ func printInfo(message string) {
 func die(e error) {
 	printError(e)
 	os.Exit(1)
-}
-
-/* coloring stringers */
-var red = color.New(color.FgRed).SprintFunc()
-var bold = color.New(color.Bold).SprintFunc()
-var yellow = color.New(color.FgYellow).SprintFunc()
-var redBold = color.New(color.FgRed, color.Bold).SprintFunc()
-var cyanBold = color.New(color.FgCyan, color.Bold).SprintFunc()
-var cyan = color.New(color.FgCyan).SprintFunc()
-var greenBold = color.New(color.FgGreen, color.Bold).SprintFunc()
-var green = color.New(color.FgGreen).SprintFunc()
-var hiGreenBold = color.New(color.FgHiGreen, color.Bold).SprintFunc()
-var underline = color.New(color.Underline).SprintFunc()
-var yellowBold = color.New(color.FgYellow, color.Bold).SprintFunc()
-
-// error with hints
-type errWithHints struct {
-	err   error
-	hints []string
-}
-
-func (e *errWithHints) Error() string {
-	return e.err.Error()
-}
-
-func newErrWithHints(err error, hints ...string) *errWithHints {
-	return &errWithHints{
-		err:   err,
-		hints: hints,
-	}
 }
