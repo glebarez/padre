@@ -1,4 +1,4 @@
-package config
+package main
 
 import (
 	"flag"
@@ -9,7 +9,8 @@ import (
 	"strings"
 
 	"github.com/glebarez/padre/pkg/encoding"
-	"github.com/glebarez/padre/pkg/http"
+	phttp "github.com/glebarez/padre/pkg/http"
+	"github.com/glebarez/padre/pkg/output"
 )
 
 func init() {
@@ -21,14 +22,14 @@ func init() {
 
 const defaultConcurrency = 30
 
-// Config - all the settings
+// Args - CLI flags
 type Args struct {
 	BlockLen                *int
 	Parallel                *int
 	URL                     *string
-	Encoder                 encoding.EncoderDecoder
+	Encoding                encoding.EncoderDecoder
 	PaddingErrorPattern     *string
-	PaddingErrorFingerprint *http.ResponseFingerprint
+	PaddingErrorFingerprint *phttp.ResponseFingerprint
 	ProxyURL                *string
 	POSTdata                *string
 	ContentType             *string
@@ -41,27 +42,27 @@ type Args struct {
 var hadErrors bool
 
 func argError(flag string, text string) {
-	PrintError(fmt.Errorf("Parameter %s: %s", flag, text))
+	output.PrintError(fmt.Errorf("Parameter %s: %s", flag, text))
 	hadErrors = true
 }
 
 func argWarning(flag string, text string) {
-	PrintWarning(fmt.Sprintf("Parameter %s: %s", flag, text))
+	output.PrintWarning(fmt.Sprintf("Parameter %s: %s", flag, text))
 }
 
-func parseArgs(ok bool, input *string) *Config {
-	// create config struct
-	config := Config{}
+func parseArgs(ok bool, input *string) *config.Config {
+	// create args struct
+	args := Args{}
 
-	// config flags
-	config.URL = flag.String("u", "", "")
-	config.paddingErrorPattern = flag.String("err", "", "")
-	config.blockLen = flag.Int("b", 0, "")
-	config.parallel = flag.Int("p", defaultConcurrency, "")
-	config.proxyURL = flag.String("proxy", "", "")
-	config.POSTdata = flag.String("post", "", "")
-	config.contentType = flag.String("ct", "", "")
-	config.encrypt = flag.Bool("enc", false, "")
+	// setup flags
+	args.URL = flag.String("u", "", "")
+	args.PaddingErrorPattern = flag.String("err", "", "")
+	args.BlockLen = flag.Int("b", 0, "")
+	args.Parallel = flag.Int("p", defaultConcurrency, "")
+	args.ProxyURL = flag.String("proxy", "", "")
+	args.POSTdata = flag.String("post", "", "")
+	args.ContentType = flag.String("ct", "", "")
+	args.EncryptMode = flag.Bool("enc", false, "")
 
 	// not-yet config flags
 	encoding := flag.String("e", "b64", "")

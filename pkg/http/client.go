@@ -7,45 +7,43 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/glebarez/padre/pkg/config"
-	"github.com/glebarez/padre/pkg/encoding"
+	"github.com/glebarez/padre/pkg/encoder"
 )
 
 // Client - API to perform HTTP Requests to a remote server.
-// Very specific for padre in that it sends queries to a specific URL
+// Very specific to padre, in that it sends queries to a specific URL
 // that carries out the decryption and can spill padding oracle
 type Client struct {
 	// underlying net/http client
 	client *http.Client
 
-	// target URL that carries out the decryption and can spill padding oracle
-	url string
-
-	// pattern for HTTP POST data
+	// the following data will form the HTTP request payloads
+	url      string
 	POSTdata string
+	cookies  []*http.Cookie
 
 	// HTTP concurrency (maximum number of simultaneous connections)
 	concurrency int
 
 	// encoder that is used to transform binary cipher into plaintext
 	// this should comply with what remote server uses (e.g. Base64, Hex, etc)
-	cipherEncoder encoding.EncoderDecoder
+	encoder encoder.Encoder
+
+	contentType string
 }
 
 // Response - HTTP Response data
 type Response struct {
 	StatusCode int
-	Data       []byte
+	Body       []byte
 }
 
 // NewClient - Client Factory
-func NewClient(config *config.Config) (*Client, error) {
+func NewClient(proxy string, concurrency int) (*Client, error) {
 
 	// parse proxy URL
-	var (
-		proxyURL *url.URL
-		err      error
-	)
+	var proxyURL *url.URL
+	var err error
 
 	if proxy == "" {
 		proxyURL = nil
@@ -86,17 +84,17 @@ func (c *Client) doRequest(ctx context.Context, cipher []byte) (*Response, error
 	// build URL
 	url, err := url.Parse(replacePlaceholder(c.url, cipherEncoded))
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	// create request
 	req := &http.Request{
 		URL:    url,
-		Header: headers.Clone(),
+		Header: http.Header{},
 	}
 
 	// upgrade to POST if data is provided
-	if *config.POSTdata != "" {
+	if c.POSTdata != "" {
 		req.Method = "POST"
 		data := replacePlaceholder(c.POSTdata, cipherEncoded)
 		req.Body = ioutil.NopCloser(strings.NewReader(data))
@@ -104,18 +102,14 @@ func (c *Client) doRequest(ctx context.Context, cipher []byte) (*Response, error
 		/* clone header before changing, so that:
 		1. we don't mess the original template header variable
 		2. to make it concurrency-save, otherwise expect panic */
-		req.Header["Content-Type"] = []string{*config.contentType}
+		req.Header["Content-Type"] = []string{c.contentType}
 	}
 
 	// add cookies if any
-	if config.cookies != nil {
-		for _, c := range config.cookies {
-			// copy template cookie instance, so that we're concurrent-safe
-			cookieCopy := &http.Cookie{Name: c.Name, Value: c.Value}
-			cookieCopy.Value = replacePlaceholder(cookieCopy.Value, cipherEncoded)
-
-			// add cookie to the requests
-			req.AddCookie(cookieCopy)
+	if c.cookies != nil {
+		for _, c := range c.cookies {
+			// add cookies
+			req.AddCookie(&http.Cookie{Name: c.Name, Value: replacePlaceholder(c.Value, cipherEncoded)})
 		}
 	}
 
@@ -125,9 +119,9 @@ func (c *Client) doRequest(ctx context.Context, cipher []byte) (*Response, error
 	}
 
 	// send request
-	resp, err := client.Do(req)
+	resp, err := c.client.Do(req)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	defer resp.Body.Close()
 
@@ -137,8 +131,8 @@ func (c *Client) doRequest(ctx context.Context, cipher []byte) (*Response, error
 	// read body
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
-	return resp, body, nil
+	return &Response{StatusCode: resp.StatusCode, Body: body}, nil
 }
