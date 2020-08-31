@@ -13,7 +13,7 @@ def random_bytes(length: int) -> bytes:
 
 class IncorrectPadding(Exception):
     def __init__(self):
-        super(IncorrectPadding, self).__init__("Incorrect Padding")
+        super().__init__("Incorrect Padding")
 
 
 def encrypt(data: bytes, key: bytes) -> bytes:

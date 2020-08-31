@@ -12,13 +12,13 @@ from encoder import Encoding
 
 @functools.lru_cache()
 def AES_key():
-    # if secret is set in app config, use to produce AES key
+    # if secret is set in app config, used to produce AES key
     # otherwise, just generate random one
     secret = app.config.get("SECRET")
     if secret is None:
         return crypto.random_bytes(16)
     else:
-        hashlib.md5(secret).digest()
+        return hashlib.md5(secret.encode()).digest()
 
 
 app = Flask(__name__)
@@ -74,6 +74,11 @@ def route_decrypt():
     return plain, 200
 
 
+@app.route("/health")
+def health():
+    return "OK", 200
+
+
 # this is what makes the server vulnerable to padding oracle
 # it just talks too much about errors
 # NOTE: to test Padding Oracle detection, every exception's trace is printed
@@ -85,7 +90,7 @@ def handle_incorrect_padding(exc):
         return exc
 
     # log exception
-    app.logger.exception(exc)
+    # app.logger.exception(exc)
 
     if app.config.get("VULNERABLE"):
         # vulnerable response

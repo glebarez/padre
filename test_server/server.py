@@ -15,10 +15,10 @@ if __name__ == "__main__":
 
         WSGIServer(
             (
-                "127.0.0.1",
+                "0.0.0.0",
                 5000,
             ),
             app.wsgi_app,
         ).serve_forever()
     else:
-        app.run("127.0.0.1", 5000)
+        app.run("0.0.0.0", 5000)

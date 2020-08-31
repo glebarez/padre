@@ -6,10 +6,30 @@ from app import app
 from encoder import Encoding
 
 
+@pytest.fixture(params=list(Encoding))
+def encoding(request):
+    return request.param
+
+
+@pytest.fixture(params=[True, False])
+def is_vulnerable(request):
+    return request.param
+
+
+@pytest.fixture(params=["GET", "POST"])
+def http_method(request):
+    return request.param
+
+
 @pytest.fixture
-def client(is_vulnerable: bool):
+def secret():
+    return None
+
+
+@pytest.fixture
+def client(is_vulnerable, secret):
     # create app config
-    config = Namespace(VULNERABLE=is_vulnerable)
+    config = Namespace(VULNERABLE=is_vulnerable, SECRET=secret)
 
     # inject config
     app.config.from_object(config)
@@ -28,9 +48,6 @@ def call_route(client, http_method):
         raise AssertionError("Not supported HTTP method: %s" % http_method)
 
 
-@pytest.mark.parametrize("is_vulnerable", [True, False])
-@pytest.mark.parametrize("http_method", ["GET", "POST"])
-@pytest.mark.parametrize("encoding", list(Encoding))
 @pytest.mark.parametrize("plaintext", [""])
 def test_app(call_route, plaintext, is_vulnerable, encoding):
     # send plaintext for encryption
@@ -60,8 +77,6 @@ def test_app(call_route, plaintext, is_vulnerable, encoding):
         assert "Traceback" in resp.data.decode()
 
 
-@pytest.mark.parametrize("is_vulnerable", [True, False])
-@pytest.mark.parametrize("http_method", ["GET", "POST"])
 def test_absent_params(call_route):
     # no plaintext
     resp = call_route("/encrypt")
@@ -74,3 +89,21 @@ def test_absent_params(call_route):
     # no explicit encoding
     resp = call_route("/encrypt", data={"plain": "test"})
     assert resp.status_code == 200
+
+
+@pytest.mark.parametrize("http_method", ["GET"])
+def test_health(call_route):
+    resp = call_route("/health")
+    assert resp.status_code == 200
+
+
+# @pytest.mark.parametrize("secret", ["padre"])
+# def test_reproducible_cipher(call_route, encoding, secret):
+#     print(app.config)
+#     resp = call_route("/encrypt", data={"plain": "padre"})
+#     assert resp.status_code == 200
+#     if encoding == Encoding.B64:
+#         assert resp.data.decode() == "P6tHBLB95YWpovay/a34pZNai624TAWLyWNVCMOmImM="
+#         print(app.config)
+#     elif encoding == Encoding.LHEX:
+#         assert resp.data.decode() == "xxx"
