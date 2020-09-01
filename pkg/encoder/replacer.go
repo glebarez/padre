@@ -16,7 +16,7 @@ type encoderWithReplacer struct {
 
 // encode with replacement
 func (r *encoderWithReplacer) EncodeToString(input []byte) string {
-	encoded := r.ed.EncodeToString(input)
+	encoded := r.encoder.EncodeToString(input)
 	return r.replacerAfterEncoding.Replace(encoded)
 }
 
@@ -32,8 +32,8 @@ func (r *encoderWithReplacer) DecodeString(input string) ([]byte, error) {
 }
 
 // wrapper creator
-func newEncDecWithReplacer(encoder Encoder, replacements string) Encoder {
-	return &encDecWithReplacer{
+func newEncoderWithReplacer(encoder Encoder, replacements string) Encoder {
+	return &encoderWithReplacer{
 		encoder:                encoder,
 		replacerAfterEncoding:  strings.NewReplacer(strings.Split(replacements, "")...),
 		replacerBeforeDecoding: strings.NewReplacer(strings.Split(util.ReverseString(replacements), "")...),

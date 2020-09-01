@@ -1,78 +1,19 @@
-package main
+package probe
 
 /* various fingerprinting of HTTP responses */
 
 import (
 	"context"
-	"fmt"
 	"net/http"
-	"regexp"
 )
 
-// check if response contains padding error
-func isPaddingError(resp *http.Response, body []byte) (bool, error) {
-	// try regex matcher if pattern is set
-	if *config.paddingErrorPattern != "" {
-		matched, err := regexp.Match(*config.paddingErrorPattern, body)
-		if err != nil {
-			return false, err
-		}
-		return matched, nil
-	}
-
-	// otherwise fallback to fingerprint
-	if config.paddingErrorFingerprint != nil {
-		fp, err := getResponseFingerprint(resp, body)
-		if err != nil {
-			return false, err
-		}
-		return *fp == *config.paddingErrorFingerprint, nil
-	}
-
-	return false, fmt.Errorf("Neither fingerprint nor string pattern for padding error is set")
-}
-
-// attempts to auto-detect padding oracle fingerprint
-// return nil fingerprint if failed
-func detectPaddingErrorFingerprint(blockLen int) (*fingerprint, error) {
-	/* the context 	will be cancelled upon returning from function */
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	// create random cipher
-	cipher := randomBlock(blockLen * 2)
-	pos := blockLen - 1
-
-	// probeFunc wrapper
-	var probeFingerprint probeFunc = func(r *http.Response, b []byte) (interface{}, error) {
-		return getResponseFingerprint(r, b)
-	}
-
-	// fingerprint probes
-	chanResult := sendProbes(ctx, cipher, pos, probeFingerprint)
-
-	// collect counts of fingerprints
-	fpMap := map[fingerprint]int{}
-	for result := range chanResult {
-		if result.err != nil {
-			// error during probes
-			return nil, result.err
-		}
-		fpMap[*result.result.(*fingerprint)]++
-	}
-
-	// padding oracle must respond with 254 or 255 identical fingerprints
-	for fp, count := range fpMap {
-		if count == 254 || count == 255 {
-			return &fp, nil
-		}
-	}
-	return nil, nil
+type paddingErrorTester struct {
+	fingerprints []*ResponseFingerprint
 }
 
 // detect bytes that do not produce padding error
-// early-stop of maxCount of such bytes reached
-func detectErrorlessBytes(chunk []byte, pos int, maxCount int) ([]byte, error) {
+// early-stop when maxCount of such bytes reached
+func testByteValues(chunk []byte, pos int, maxCount int) ([]byte, error) {
 	/* the context 	will be cancelled upon returning from function */
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()

@@ -13,15 +13,8 @@ import (
 	"github.com/nsf/termbox-go"
 )
 
-// creates copy of a slice
-func sliceCopy(slice []byte) []byte {
-	sliceCopy := make([]byte, len(slice))
-	copy(sliceCopy, slice)
-	return sliceCopy
-}
-
 /* determine width of current terminal */
-func terminalWidth() int {
+func TerminalWidth() int {
 	if err := termbox.Init(); err != nil {
 		return -1
 	}
@@ -36,7 +29,7 @@ func isTerminal(file *os.File) bool {
 }
 
 /* parse cookie string into net/http header format */
-func parseCookies(cookies string) (cookSlice []*http.Cookie, err error) {
+func ParseCookies(cookies string) (cookSlice []*http.Cookie, err error) {
 	// strip quotes if any
 	cookies = strings.Trim(cookies, `"'`)
 
@@ -59,7 +52,7 @@ func parseCookies(cookies string) (cookSlice []*http.Cookie, err error) {
 }
 
 /* detect HTTP Content-Type */
-func detectContentType(data string) string {
+func DetectContentType(data string) string {
 	var contentType string
 
 	if data[0] == '{' || data[0] == '[' {
@@ -101,27 +94,11 @@ func init() {
 
 }
 
-// generate random block of bytes
-func randomBlock(len int) []byte {
+func RandomSlice(len int) []byte {
 	buf := bytes.NewBuffer(make([]byte, 0, len))
 	for i := 0; i < len; i++ {
 		buf.WriteByte(randomRing.Value.(byte))
 		randomRing = randomRing.Next()
 	}
 	return buf.Bytes()
-}
-
-// XORs 2 slices of bytes
-func xorSlices(s1 []byte, s2 []byte) []byte {
-	if len(s1) != len(s2) {
-		panic("lengths of slices not equal")
-	}
-
-	output := make([]byte, len(s1))
-
-	for i := 0; i < len(s1); i++ {
-		output[i] = s1[i] ^ s2[i]
-	}
-
-	return output
 }

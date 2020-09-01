@@ -1,8 +1,9 @@
-package http
+package probe
 
 import (
-	"net/http"
 	"unicode"
+
+	"github.com/glebarez/padre/pkg/client"
 )
 
 // ResponseFingerprint ...
@@ -13,11 +14,11 @@ type ResponseFingerprint struct {
 }
 
 // GetResponseFingerprint - scrape fingerprint form http response
-func GetResponseFingerprint(resp *http.Response, body []byte) (*ResponseFingerprint, error) {
-	return &fingerprint{
+func GetResponseFingerprint(resp *client.Response) (*ResponseFingerprint, error) {
+	return &ResponseFingerprint{
 		StatusCode: resp.StatusCode,
-		Lines:      countLines(body),
-		Words:      countWords(body),
+		Lines:      countLines(resp.Body),
+		Words:      countWords(resp.Body),
 	}, nil
 }
 

@@ -86,7 +86,7 @@ func PrintWarning(message string) {
 }
 
 /* success */
-func printSuccess(message string) {
+func PrintSuccess(message string) {
 	printWithPrefix(greenBold("[+]"), message)
 }
 
@@ -96,7 +96,7 @@ func printHint(message string) {
 }
 
 /* info */
-func printInfo(message string) {
+func PrintInfo(message string) {
 	printWithPrefix(cyanBold("[i]"), message)
 }
 

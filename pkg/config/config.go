@@ -1,10 +1,5 @@
 package config
 
-import (
-	"github.com/glebarez/padre/pkg/encoding"
-	"github.com/glebarez/padre/pkg/http"
-)
-
 // Config - all the settings
 type Config struct {
 	BlockLen                *int

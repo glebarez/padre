@@ -1,7 +1,6 @@
 package main
 
 import (
-	"github.com/glebarez/padre/pkg/color"
 	"github.com/glebarez/padre/pkg/config"
 )
 

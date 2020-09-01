@@ -6,7 +6,7 @@ import "github.com/fatih/color"
 var (
 	red         = color.New(color.FgRed).SprintFunc()
 	bold        = color.New(color.Bold).SprintFunc()
-	yellow      = color.New(color.FgYellow).SprintFunc()
+	Yellow      = color.New(color.FgYellow).SprintFunc()
 	redBold     = color.New(color.FgRed, color.Bold).SprintFunc()
 	CyanBold    = color.New(color.FgCyan, color.Bold).SprintFunc()
 	cyan        = color.New(color.FgCyan).SprintFunc()
