@@ -90,13 +90,12 @@ func (c *Client) DoRequest(ctx context.Context, cipher []byte) (*Response, error
 
 	// upgrade to POST if data is provided
 	if c.POSTdata != "" {
+		// perform data for POST body
 		req.Method = "POST"
 		data := replacePlaceholder(c.POSTdata, cipherEncoded)
 		req.Body = ioutil.NopCloser(strings.NewReader(data))
 
-		/* clone header before changing, so that:
-		1. we don't mess the original template header variable
-		2. to make it concurrency-save, otherwise expect panic */
+		// set content type
 		req.Header["Content-Type"] = []string{c.contentType}
 	}
 

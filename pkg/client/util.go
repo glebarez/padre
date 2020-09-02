@@ -10,3 +10,10 @@ func replacePlaceholder(s string, replacement string) string {
 	replacement = url.QueryEscape(replacement)
 	return strings.Replace(s, "$", replacement, -1)
 }
+
+// creates copy of a slice
+func copySlice(slice []byte) []byte {
+	sliceCopy := make([]byte, len(slice))
+	copy(sliceCopy, slice)
+	return sliceCopy
+}

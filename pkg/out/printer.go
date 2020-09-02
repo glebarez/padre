@@ -1,7 +1,6 @@
-package output
+package out
 
 import (
-	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -9,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/fatih/color"
+	"github.com/glebarez/padre/pkg/errors"
 	"github.com/mattn/go-isatty"
 )
 
@@ -61,7 +61,7 @@ func PrintError(err error) {
 	printWithPrefix(redBold("[-]"), red(err))
 
 	// print hints if available
-	var ewh *errWithHints
+	var ewh *errors.ErrWithHints
 	if errors.As(err, &ewh) {
 		printHint(strings.Join(ewh.hints, "\n"))
 	}

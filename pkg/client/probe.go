@@ -1,25 +1,24 @@
-package probe
+package client
 
 import (
 	"context"
 	"sync"
-
-	"github.com/glebarez/padre/pkg/client"
 )
 
 // equals to 2**8, since we're testing every possible value of a byte
 const probeCount = 256
 
-type probeResult struct {
-	probe    byte
-	response *client.Response
-	err      error
+// ProbeResult - result of probe
+type ProbeResult struct {
+	Byte     byte
+	Response *Response
+	Err      error
 }
 
-/* given a chunk of bytes, place every possible byte-value at specified position.
-these probes are sent concurrently over HTTP
-the results of probeFunc will be written into chanResult channel */
-func sendProbes(ctx context.Context, client *client.Client, chunk []byte, pos int, chanResult chan *probeResult) {
+// SendProbes -  given a chunk of bytes, place every possible byte-value at specified position.
+// These probes are sent concurrently over HTTP.
+// The results will be written into chanResult channel
+func (client *Client) SendProbes(ctx context.Context, chunk []byte, pos int, chanResult chan *ProbeResult) {
 	// send byte values into this
 	chanIn := make(chan byte, probeCount)
 
@@ -56,15 +55,15 @@ func sendProbes(ctx context.Context, client *client.Client, chunk []byte, pos in
 
 					if err != nil {
 						// error during HTTP request
-						chanResult <- &probeResult{
-							probe: b,
-							err:   err,
+						chanResult <- &ProbeResult{
+							Byte: b,
+							Err:  err,
 						}
 					} else {
 						// send response
-						chanResult <- &probeResult{
-							probe:    b,
-							response: resp,
+						chanResult <- &ProbeResult{
+							Byte:     b,
+							Response: resp,
 						}
 					}
 				}

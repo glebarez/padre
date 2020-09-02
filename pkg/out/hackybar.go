@@ -1,4 +1,4 @@
-package output
+package out
 
 import (
 	"fmt"
@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/glebarez/padre/pkg/encoding"
+	"github.com/glebarez/padre/pkg/encoder"
 )
 
 /*
@@ -24,10 +24,10 @@ const updateFreq = 13
 
 type hackyBar struct {
 	// output info
-	outputData    []byte                  // container for byte-output
-	outputByteLen int                     // total number of bytes in output (before encoding)
-	encoder       encoding.EncoderDecoder // encoder for the byte-output
-	overflow      bool                    // flag: terminal width overflowed, data was too wide
+	outputData    []byte          // container for byte-output
+	outputByteLen int             // total number of bytes in output (before encoding)
+	encoder       encoder.Encoder // encoder for the byte-output
+	overflow      bool            // flag: terminal width overflowed, data was too wide
 
 	// communications
 	chanOutput chan byte      // delivering every byte of output via this channel
@@ -42,18 +42,22 @@ type hackyBar struct {
 
 	// the output properties
 	autoUpdateFreq time.Duration // interval at which the bar must be updated
+	encryptMode    bool          // whether encrypt mode is used
+	termWidth      int
 }
 
-func createHackyBar(encoder *encoderDecoder, outputLen int) *hackyBar {
+func createHackyBar(encoder *encoder.Encoder, outputByteLen int, encryptMode bool, termWidth int) *hackyBar {
 	return &hackyBar{
 		outputData:     []byte{},
-		outputByteLen:  outputLen,
+		outputByteLen:  outputByteLen,
 		wg:             sync.WaitGroup{},
 		chanOutput:     make(chan byte),
-		chanReq:        make(chan byte, *config.parallel),
+		chanReq:        make(chan byte, 256),
 		chanStop:       make(chan byte),
 		autoUpdateFreq: time.Second / time.Duration(updateFreq),
 		encoder:        *encoder,
+		encryptMode:    encryptMode,
+		termWidth:      termWidth,
 	}
 }
 
@@ -125,7 +129,7 @@ func (p *hackyBar) buildStatusString(hacky bool) string {
 
 	/* generate unknown output */
 	unprocessedLen := p.outputByteLen - len(p.outputData)
-	if *config.encrypt {
+	if p.encryptMode {
 		unprocessedLen = len(p.encoder.EncodeToString(make([]byte, unprocessedLen)))
 	}
 	unknownOutput := unknownString(unprocessedLen, hacky)
@@ -138,7 +142,7 @@ func (p *hackyBar) buildStatusString(hacky bool) string {
 		"[%d/%d] | reqs: %d (%d/sec)", len(p.outputData), p.outputByteLen, p.requestsMade, p.rps)
 
 	/* get available space in current terminal width */
-	availableSpace := config.termWidth - len(currentStatus.prefix) - len(stats) - 1 // -1 is for the space between output and stats
+	availableSpace := p.termWidth - len(currentStatus.prefix) - len(stats) - 1 // -1 is for the space between output and stats
 	if availableSpace < 5 {
 		// a general fool-check
 		panic("Your terminal is to narrow. Use a real one")

@@ -22,7 +22,7 @@ func GetResponseFingerprint(resp *client.Response) (*ResponseFingerprint, error)
 	}, nil
 }
 
-// count number of lines in input
+// helper: count number of lines in input
 func countLines(input []byte) int {
 	if len(input) == 0 {
 		return 0
@@ -36,7 +36,7 @@ func countLines(input []byte) int {
 	return count
 }
 
-// count number of words in input
+// helper: count number of lines in input
 func countWords(input []byte) int {
 	inWord, count := false, 0
 	for _, r := range string(input) {
