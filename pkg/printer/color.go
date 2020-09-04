@@ -1,6 +1,20 @@
 package color
 
-import "github.com/fatih/color"
+import (
+	"os"
+	"regexp"
+
+	"github.com/fatih/color"
+	"github.com/mattn/go-isatty"
+)
+
+func init() {
+	// override the standard decision on No-color mode
+	color.NoColor = os.Getenv("TERM") == "dumb" ||
+		(!isatty.IsTerminal(os.Stderr.Fd()) && !isatty.IsCygwinTerminal(os.Stderr.Fd()))
+	// matcher for coloring terminal sequences
+	colorMatcher = regexp.MustCompile("\033\\[.*?m")
+}
 
 /* coloring stringers */
 var (
@@ -16,3 +30,8 @@ var (
 	underline   = color.New(color.Underline).SprintFunc()
 	yellowBold  = color.New(color.FgYellow, color.Bold).SprintFunc()
 )
+
+// strips terminal color controls  from a string
+func stripColor(s string) string {
+	return colorMatcher.ReplaceAllString(s, "")
+}
