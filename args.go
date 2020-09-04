@@ -9,14 +9,14 @@ import (
 	"strings"
 
 	"github.com/glebarez/padre/pkg/encoder"
-	"github.com/glebarez/padre/pkg/output"
+	"github.com/glebarez/padre/pkg/out"
 	"github.com/glebarez/padre/pkg/util"
 )
 
 func init() {
 	// a custom usage message
 	flag.Usage = func() {
-		output.Print(usage)
+		out.Print(usage)
 	}
 }
 
@@ -42,12 +42,12 @@ type Args struct {
 var hadErrors bool
 
 func argError(flag string, text string) {
-	output.PrintError(fmt.Errorf("Parameter %s: %s", flag, text))
+	out.PrintError(fmt.Errorf("Parameter %s: %s", flag, text))
 	hadErrors = true
 }
 
 func argWarning(flag string, text string) {
-	output.PrintWarning(fmt.Sprintf("Parameter %s: %s", flag, text))
+	out.PrintWarning(fmt.Sprintf("Parameter %s: %s", flag, text))
 }
 
 func parseArgs() (ok bool, args *Args) {
@@ -94,7 +94,7 @@ func parseArgs() (ok bool, args *Args) {
 	// get terminal width
 	args.TermWidth = util.TerminalWidth()
 	if args.TermWidth == -1 {
-		output.PrintWarning("Could not  determine your terminal width. Falling back to 80")
+		out.PrintWarning("Could not  determine your terminal width. Falling back to 80")
 		args.TermWidth = 80 // fallback
 	}
 
@@ -171,20 +171,20 @@ func parseArgs() (ok bool, args *Args) {
 
 	// if errors in arguments, return here with message
 	if hadErrors {
-		output.Print(fmt.Sprintf("\nRun with %s option to see usage help\n", output.CyanBold("-h")))
+		out.Print(fmt.Sprintf("\nRun with %s option to see usage help\n", out.CyanBold("-h")))
 		ok = false
 		return
 	}
 
 	// show some info
-	output.PrintInfo("padre is on duty")
-	output.PrintInfo(fmt.Sprintf("Using concurrency (http connections): %d", *args.Parallel))
+	out.PrintInfo("padre is on duty")
+	out.PrintInfo(fmt.Sprintf("Using concurrency (http connections): %d", *args.Parallel))
 
 	// content-type detection
 	if *args.POSTdata != "" && *args.ContentType == "" {
 		// if not passed, determine automatically
 		*args.ContentType = util.DetectContentType(*args.POSTdata)
-		output.PrintSuccess("HTTP Content-Type detected automatically as " + output.Yellow(*args.ContentType))
+		out.PrintSuccess("HTTP Content-Type detected automatically as " + out.Yellow(*args.ContentType))
 	}
 
 	ok = true

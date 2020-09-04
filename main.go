@@ -4,6 +4,8 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+
+	"honnef.co/go/tools/config"
 )
 
 func main() {
@@ -148,4 +150,29 @@ func detectOrConfirmPaddingOracle(blockLen int) error {
 		}
 	}
 	return nil
+}
+
+func makeDetectionHints(*config.Config) []string {
+	// hint intro
+	intro := `if you believe target is vulnerable, try following:`
+	li := color.CyanBold(`> `)
+	hints := []string{intro}
+
+	// block length
+	if *config.blockLen != 0 {
+		hints = append(hints, li+hint.omitBlockLen)
+	} else {
+		// error pattern
+		if *config.paddingErrorPattern != "" {
+			hints = append(hints, li+hint.omitErrPattern)
+		} else {
+			hints = append(hints, li+hint.setErrPattern)
+		}
+	}
+
+	// concurrency
+	if *config.parallel > 10 {
+		hints = append(hints, li+hint.lowerConnections)
+	}
+	return hints
 }
