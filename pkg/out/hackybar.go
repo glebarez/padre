@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/glebarez/padre/pkg/encoder"
+	"github.com/glebarez/padre/pkg/printer"
 )
 
 /*
@@ -16,13 +17,14 @@ The bar reflects current state of output calculation.
 Apart from currently calculated part of output, it also shows yet-unknown part as a random mix of ASCII characters.
 This bar is designed to be fun and fast-changing.
 It also shows HTTP-client performance in real-time, such as: total http requests sent, average RPS
-NOTE: the hacky-bar is a part of status (see status.go) and cannot be used separately
 */
 
 // output refresh frequency (times/second)
 const updateFreq = 13
 
 type hackyBar struct {
+	printer *printer.Printer // target printer
+
 	// output info
 	outputData    []byte          // container for byte-output
 	outputByteLen int             // total number of bytes in output (before encoding)
@@ -31,6 +33,7 @@ type hackyBar struct {
 
 	// communications
 	chanOutput chan byte      // delivering every byte of output via this channel
+	chanReq    chan byte      // to deliver indicator of yet-another http request made
 	chanStop   chan byte      // used to send a stop-signal to bar
 	wg         sync.WaitGroup // used to wait for gracefull exit after stop signal sent
 
@@ -38,15 +41,14 @@ type hackyBar struct {
 	start        time.Time // the time of first request made, needed to properly calculate RPS
 	requestsMade int       // total requests made, needed to calculate RPS
 	rps          int       // RPS
-	chanReq      chan byte // to deliver indicator of yet-another http request made
 
 	// the output properties
 	autoUpdateFreq time.Duration // interval at which the bar must be updated
 	encryptMode    bool          // whether encrypt mode is used
-	termWidth      int
+	maxWidth       int           // maximum width of bar in characters
 }
 
-func createHackyBar(encoder *encoder.Encoder, outputByteLen int, encryptMode bool, termWidth int) *hackyBar {
+func createHackyBar(encoder *encoder.Encoder, outputByteLen int, encryptMode bool, maxWidth int) *hackyBar {
 	return &hackyBar{
 		outputData:     []byte{},
 		outputByteLen:  outputByteLen,
@@ -57,7 +59,7 @@ func createHackyBar(encoder *encoder.Encoder, outputByteLen int, encryptMode boo
 		autoUpdateFreq: time.Second / time.Duration(updateFreq),
 		encoder:        *encoder,
 		encryptMode:    encryptMode,
-		termWidth:      termWidth,
+		maxWidth:       maxWidth,
 	}
 }
 
@@ -141,8 +143,8 @@ func (p *hackyBar) buildStatusString(hacky bool) string {
 	stats := fmt.Sprintf(
 		"[%d/%d] | reqs: %d (%d/sec)", len(p.outputData), p.outputByteLen, p.requestsMade, p.rps)
 
-	/* get available space in current terminal width */
-	availableSpace := p.termWidth - len(currentStatus.prefix) - len(stats) - 1 // -1 is for the space between output and stats
+	/* get available space */
+	availableSpace := p.maxWidth - len(stats) - 1 // -1 is for the space between output and stats
 	if availableSpace < 5 {
 		// a general fool-check
 		panic("Your terminal is to narrow. Use a real one")

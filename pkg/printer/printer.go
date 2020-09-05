@@ -7,7 +7,7 @@ import (
 )
 
 const (
-	// LF Linefeed
+	// LF Line feed
 	LF = "\n"
 
 	// CR Carret return
@@ -15,7 +15,7 @@ const (
 )
 
 type Printer struct {
-	stream   io.Writer
+	stream io.Writer
 }
 
 func (p *Printer) Print(a ...interface{}) {
@@ -27,10 +27,10 @@ func (p *Printer) Println(a ...interface{}) {
 }
 
 func (p *Printer) Printcr(a ...interface{}) {
-	p.Print(a..., CR)
+	p.Print(fmt.Sprint(a...), CR)
 }
 
-func (p *Print) printWithPrefix(prefix, message string) {
+func (p *Printer) printWithPrefix(prefix, message string) {
 	message = strings.TrimSpace(message)
 	lines := strings.Split(message, LF)
 	for i, line := range lines {
@@ -41,46 +41,32 @@ func (p *Print) printWithPrefix(prefix, message string) {
 	}
 }
 
-func (p *Print) PrintError(err error) {
-	// print error message
+func (p *Printer) Error(err error) {
 	p.printWithPrefix(redBold("[-]"), red(err))
 
-	// print hints if available
-	var ewh *errors.ErrWithHints
-	if errors.As(err, &ewh) {
-		p.printHint(strings.Join(ewh.hints, LF))
-	}
+	// // print hints if available
+	// var ewh *errors.ErrWithHints
+	// if errors.As(err, &ewh) {
+	// 	p.printHint(strings.Join(ewh.hints, LF))
+	// }
 }
 
-/*  hint */
-func (p *Print) printHint(message string) {
-	p.printWithPrefix(cyanBold("[hint]"), message)
+func (p *Printer) Hint(message string) {
+	p.printWithPrefix(CyanBold("[hint]"), message)
 }
 
-/* warning  */
-func (p *Print) PrintWarning(message string) {
+func (p *Printer) Warning(message string) {
 	p.printWithPrefix(yellowBold("[!]"), message)
 }
 
-/* success */
-func (p *Print) PrintSuccess(message string) {
-	p.printWithPrefix(greenBold("[+]"), message)
+func (p *Printer) Success(message string) {
+	p.printWithPrefix(GreenBold("[+]"), message)
 }
 
-/* info */
-func (p *Print) PrintInfo(message string) {
-	p.printWithPrefix(cyanBold("[i]"), message)
+func (p *Printer) Info(message string) {
+	p.printWithPrefix(CyanBold("[i]"), message)
 }
 
-/* action printer */
-func (p *Print) PrintAction(s string) {
-	if currentStatus != nil {
-		currentStatus.print(yellow(s), true)
-	} else {
-		_, err := fmt.Fprint(outputStream, leftover+yellow(s))
-		if err != nil {
-			log.Fatal(err)
-		}
-		leftover = "\x1b\x5b2K\r" // clear line + caret return
-	}
+func (p *Printer) Action(s string) {
+	p.Printcr(Yellow(s))
 }

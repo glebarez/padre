@@ -1,4 +1,4 @@
-package color
+package printer
 
 import (
 	"os"
@@ -7,6 +7,8 @@ import (
 	"github.com/fatih/color"
 	"github.com/mattn/go-isatty"
 )
+
+var colorMatcher *regexp.Regexp
 
 func init() {
 	// override the standard decision on No-color mode
@@ -32,6 +34,6 @@ var (
 )
 
 // strips terminal color controls  from a string
-func stripColor(s string) string {
+func StripColor(s string) string {
 	return colorMatcher.ReplaceAllString(s, "")
 }
