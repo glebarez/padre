@@ -14,13 +14,13 @@ import (
 )
 
 /* determine width of current terminal */
-func TerminalWidth() int {
+func TerminalWidth() (int, error) {
 	if err := termbox.Init(); err != nil {
-		return -1
+		0, err
 	}
 	w, _ := termbox.Size()
 	termbox.Close()
-	return w
+	return nil, w
 }
 
 /* is terminal? */

@@ -1,8 +1,19 @@
 package main
 
 import (
+	"flag"
+	"fmt"
 	"regexp"
+
+	"github.com/glebarez/padre/pkg/color"
 )
+
+func init() {
+	// a custom usage message
+	flag.Usage = func() {
+		fmt.Fprint(stderr, usage)
+	}
+}
 
 var usage = `
 Usage: cmd(padre [OPTIONS] [INPUT])
@@ -67,23 +78,23 @@ bold(Examples:)
 func init() {
 	// add some color to usage text
 	re := regexp.MustCompile(`\*required\*`)
-	usage = string(re.ReplaceAll([]byte(usage), []byte(yellow(`(required)`))))
+	usage = string(re.ReplaceAll([]byte(usage), []byte(color.Yellow(`(required)`))))
 
 	re = regexp.MustCompile(`\*default\*`)
-	usage = string(re.ReplaceAll([]byte(usage), []byte(green(`(default)`))))
+	usage = string(re.ReplaceAll([]byte(usage), []byte(color.Green(`(default)`))))
 
 	re = regexp.MustCompile(`cmd\(([^\)]*?)\)`)
-	usage = string(re.ReplaceAll([]byte(usage), []byte(cyan("$1"))))
+	usage = string(re.ReplaceAll([]byte(usage), []byte(color.Cyan("$1"))))
 
 	re = regexp.MustCompile(`dollar\(([^\)]*?)\)`)
-	usage = string(re.ReplaceAll([]byte(usage), []byte(cyanBold("$1"))))
+	usage = string(re.ReplaceAll([]byte(usage), []byte(color.CyanBold("$1"))))
 
 	re = regexp.MustCompile(`flag\(([^\)]*?)\)`)
-	usage = string(re.ReplaceAll([]byte(usage), []byte(greenBold("$1"))))
+	usage = string(re.ReplaceAll([]byte(usage), []byte(color.GreenBold("$1"))))
 
 	re = regexp.MustCompile(`link\(([^\)]*?)\)`)
-	usage = string(re.ReplaceAll([]byte(usage), []byte(underline("$1"))))
+	usage = string(re.ReplaceAll([]byte(usage), []byte(color.Underline("$1"))))
 
 	re = regexp.MustCompile(`bold\(([^\)]*?)\)`)
-	usage = string(re.ReplaceAll([]byte(usage), []byte(bold("$1"))))
+	usage = string(re.ReplaceAll([]byte(usage), []byte(color.Bold("$1"))))
 }

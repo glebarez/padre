@@ -5,10 +5,32 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/glebarez/padre/pkg/color"
+	"github.com/glebarez/padre/pkg/util"
 	"honnef.co/go/tools/config"
 )
 
 func main() {
+	// parse CLI arguments, exit if not ok
+	ok, args := parseArgs()
+	if !ok {
+		os.Exit(1)
+	}
+
+	// show welcomming message
+	out.PrintInfo("padre is on duty")
+	out.PrintInfo(fmt.Sprintf("Using concurrency (http connections): %d", *args.Parallel))
+
+	// content-type detection
+	if *args.POSTdata != "" && *args.ContentType == "" {
+		// if not passed, determine automatically
+		*args.ContentType = util.DetectContentType(*args.POSTdata)
+		out.PrintSuccess("HTTP Content-Type detected automatically as " + out.Yellow(*args.ContentType))
+	}
+
+	ok = true
+	return
+
 	var err error
 
 	/* parse command line arguments, this will fill the config structure exit right away if not ok */

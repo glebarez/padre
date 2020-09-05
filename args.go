@@ -13,14 +13,10 @@ import (
 	"github.com/glebarez/padre/pkg/util"
 )
 
-func init() {
-	// a custom usage message
-	flag.Usage = func() {
-		out.Print(usage)
-	}
-}
-
-const defaultConcurrency = 30
+const (
+	defaultConcurrency   = 30
+	defaultTerminalWidth = 80
+)
 
 // Args - CLI flags
 type Args struct {
@@ -38,23 +34,11 @@ type Args struct {
 	Input               *string
 }
 
-/* overall indicator for flag-parsing errors */
-var hadErrors bool
+func parseArgs() (*Args, *argErrors) {
+	// container for storing errors and warnings
+	argErrs := newArgErrors()
 
-func argError(flag string, text string) {
-	out.PrintError(fmt.Errorf("Parameter %s: %s", flag, text))
-	hadErrors = true
-}
-
-func argWarning(flag string, text string) {
-	out.PrintWarning(fmt.Sprintf("Parameter %s: %s", flag, text))
-}
-
-func parseArgs() (ok bool, args *Args) {
-	var err error
-
-	// create args struct
-	args = &Args{}
+	args := &Args{}
 
 	// simple flags that go in as-is
 	args.PaddingErrorPattern = flag.String("err", "", "")
@@ -77,34 +61,35 @@ func parseArgs() (ok bool, args *Args) {
 	// general check on URL, POSTdata or Cookies for having the $ placeholder
 	match1, err := regexp.MatchString(`\$`, *targetURL)
 	if err != nil {
-		argError("-u", err.Error())
+		argErrs.error("-u", err)
 	}
 	match2, err := regexp.MatchString(`\$`, *args.POSTdata)
 	if err != nil {
-		argError("-post", err.Error())
+		argErrs.error("-post", err))
 	}
 	match3, err := regexp.MatchString(`\$`, *cookies)
 	if err != nil {
-		argError("-cookie", err.Error())
+		errors.add(argError("-cookie", err))
 	}
 	if !(match1 || match2 || match3) {
-		argError("-u, -post, -cookie", "Either URL, POST data or Cookie must contain the $ placeholder")
+		errors.add(argError("-u, -post, -cookie", "Either URL, POST data or Cookie must contain the $ placeholder"))
 	}
 
 	// get terminal width
-	args.TermWidth = util.TerminalWidth()
-	if args.TermWidth == -1 {
-		out.PrintWarning("Could not  determine your terminal width. Falling back to 80")
-		args.TermWidth = 80 // fallback
+	args.TermWidth, err = util.TerminalWidth()
+	if err != nil {
+		// fallback to default
+		warnings.add(fmt.Sprintf("Could not determine terminal width. Falling back to %d", defaultTerminalWidth))
+		args.TermWidth = defaultTerminalWidth
 	}
 
 	// Target URL
 	if *targetURL == "" {
-		argError("-u", "Must be specified")
+		errors.add(argError("-u", "Must be specified"))
 	} else {
 		args.TargetURL, err = url.Parse(*targetURL)
 		if err != nil {
-			argError("-u", "Failed to parse URL: "+err.Error())
+			errors.add(argError("-u", fmt.Errorf("Failed to parse URL: %w", err)))
 		}
 	}
 
@@ -112,13 +97,13 @@ func parseArgs() (ok bool, args *Args) {
 	if *proxyURL != "" {
 		args.ProxyURL, err = url.Parse(*proxyURL)
 		if err != nil {
-			argError("-proxy", "Failed to parse URL: "+err.Error())
+			errors.add(argError("-proxy", fmt.Errorf("Failed to parse URL: %w", err)))
 		}
 	}
 
 	// Encoder (With replacements)
 	if len(*replacements)%2 == 1 {
-		argError("-r", "String must be of even length (0,2,4, etc.)")
+		errors.add(argError("-r", "String must be of even length (0,2,4, etc.)"))
 	} else {
 		switch strings.ToLower(*encoding) {
 		case "b64":
@@ -126,7 +111,7 @@ func parseArgs() (ok bool, args *Args) {
 		case "lhex":
 			args.Encoder = encoder.NewLHEXencoder(*replacements)
 		default:
-			argError("-e", "Unsupported encoding specified")
+			errors.add(argError("-e", "Unsupported encoding specified"))
 		}
 	}
 
@@ -137,14 +122,14 @@ func parseArgs() (ok bool, args *Args) {
 	case 16:
 	case 32:
 	default:
-		argError("-b", "Unsupported value passed. Omit, or specify one of: 8, 16, 32")
+		errors.add(argError("-b", "Unsupported value passed. Omit, or specify one of: 8, 16, 32"))
 	}
 
 	// Cookies
 	if *cookies != "" {
 		args.Cookies, err = util.ParseCookies(*cookies)
 		if err != nil {
-			argError("-cookie", fmt.Sprintf("Failed to parse cookies: %s", err))
+			errors.add(argError("-cookie", fmt.Sprintf("Failed to parse cookies: %s", err)))
 		}
 	}
 
@@ -172,21 +157,8 @@ func parseArgs() (ok bool, args *Args) {
 	// if errors in arguments, return here with message
 	if hadErrors {
 		out.Print(fmt.Sprintf("\nRun with %s option to see usage help\n", out.CyanBold("-h")))
-		ok = false
-		return
+		return false, nil
 	}
 
-	// show some info
-	out.PrintInfo("padre is on duty")
-	out.PrintInfo(fmt.Sprintf("Using concurrency (http connections): %d", *args.Parallel))
-
-	// content-type detection
-	if *args.POSTdata != "" && *args.ContentType == "" {
-		// if not passed, determine automatically
-		*args.ContentType = util.DetectContentType(*args.POSTdata)
-		out.PrintSuccess("HTTP Content-Type detected automatically as " + out.Yellow(*args.ContentType))
-	}
-
-	ok = true
-	return
+	return true, args
 }

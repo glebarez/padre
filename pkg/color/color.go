@@ -1,4 +1,4 @@
-package printer
+package color
 
 import (
 	"os"
@@ -21,19 +21,19 @@ func init() {
 /* coloring stringers */
 var (
 	red         = color.New(color.FgRed).SprintFunc()
-	bold        = color.New(color.Bold).SprintFunc()
+	Bold        = color.New(color.Bold).SprintFunc()
 	Yellow      = color.New(color.FgYellow).SprintFunc()
 	redBold     = color.New(color.FgRed, color.Bold).SprintFunc()
 	CyanBold    = color.New(color.FgCyan, color.Bold).SprintFunc()
-	cyan        = color.New(color.FgCyan).SprintFunc()
+	Cyan        = color.New(color.FgCyan).SprintFunc()
 	GreenBold   = color.New(color.FgGreen, color.Bold).SprintFunc()
-	green       = color.New(color.FgGreen).SprintFunc()
+	Green       = color.New(color.FgGreen).SprintFunc()
 	hiGreenBold = color.New(color.FgHiGreen, color.Bold).SprintFunc()
-	underline   = color.New(color.Underline).SprintFunc()
+	Underline   = color.New(color.Underline).SprintFunc()
 	yellowBold  = color.New(color.FgYellow, color.Bold).SprintFunc()
 )
 
-// strips terminal color controls  from a string
+// StripColor - strips ANSI color control characters from a string
 func StripColor(s string) string {
 	return colorMatcher.ReplaceAllString(s, "")
 }
