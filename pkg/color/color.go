@@ -37,3 +37,8 @@ var (
 func StripColor(s string) string {
 	return colorMatcher.ReplaceAllString(s, "")
 }
+
+// TrueLen returns true length of a colorized string in characters
+func TrueLen(s string) int {
+	return len(StripColor(s))
+}

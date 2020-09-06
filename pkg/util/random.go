@@ -3,18 +3,7 @@ package util
 import (
 	"bytes"
 	"container/ring"
-	"strings"
 )
-
-// returns reverse of a string
-// does not support runes
-func ReverseString(in string) string {
-	out := strings.Builder{}
-	for i := len(in) - 1; i >= 0; i-- {
-		out.WriteByte(in[i])
-	}
-	return out.String()
-}
 
 // ring buffer for generating random chunks of bytes
 var randomRing *ring.Ring
@@ -32,6 +21,7 @@ func init() {
 
 }
 
+// RandomSlice generates random slice of bytes with specified length
 func RandomSlice(len int) []byte {
 	buf := bytes.NewBuffer(make([]byte, 0, len))
 	for i := 0; i < len; i++ {

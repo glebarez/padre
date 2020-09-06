@@ -1,30 +1,11 @@
-package main
+package util
 
 import (
 	"errors"
 	"net/http"
-	"os"
 	"regexp"
 	"strings"
-
-	"github.com/mattn/go-isatty"
-	"github.com/nsf/termbox-go"
 )
-
-// TerminalWidth determines width of current terminal in characters
-func TerminalWidth() (int, error) {
-	if err := termbox.Init(); err != nil {
-		return 0, err
-	}
-	w, _ := termbox.Size()
-	termbox.Close()
-	return w, nil
-}
-
-// isTerminal checks whether file is a terminal
-func isTerminal(file *os.File) bool {
-	return isatty.IsTerminal(file.Fd()) || isatty.IsCygwinTerminal(file.Fd())
-}
 
 // ParseCookies parses cookies in raw string format into net/http format
 func ParseCookies(cookies string) (cookSlice []*http.Cookie, err error) {

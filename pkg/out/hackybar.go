@@ -23,14 +23,12 @@ It also shows HTTP-client performance in real-time, such as: total http requests
 // output refresh frequency (times/second)
 const updateFreq = 13
 
-type hackyBar struct {
-	printer *printer.Printer // target printer
-
+type HackyBar struct {
 	// output info
 	outputData    []byte          // container for byte-output
 	outputByteLen int             // total number of bytes in output (before encoding)
 	encoder       encoder.Encoder // encoder for the byte-output
-	overflow      bool            // flag: terminal width overflowed, data was too wide
+	Overflow      bool            // flag: terminal width overflowed, data was too wide
 
 	// communications
 	chanOutput chan byte      // delivering every byte of output via this channel
@@ -47,26 +45,39 @@ type hackyBar struct {
 	autoUpdateFreq time.Duration // interval at which the bar must be updated
 	encryptMode    bool          // whether encrypt mode is used
 	maxWidth       int           // maximum width of bar in characters
+	printer        *printer.Printer
 }
 
-func createHackyBar(encoder *encoder.Encoder, outputByteLen int, encryptMode bool, maxWidth int) *hackyBar {
-	return &hackyBar{
+func CreateHackyBar(encoder encoder.Encoder, outputByteLen int, encryptMode bool, maxWidth int, printer *printer.Printer) *HackyBar {
+	return &HackyBar{
 		outputData:     []byte{},
 		outputByteLen:  outputByteLen,
 		wg:             sync.WaitGroup{},
-		chanOutput:     make(chan byte),
+		chanOutput:     make(chan byte, 1),
 		chanReq:        make(chan byte, 256),
 		chanStop:       make(chan byte),
 		autoUpdateFreq: time.Second / time.Duration(updateFreq),
-		encoder:        *encoder,
+		encoder:        encoder,
 		encryptMode:    encryptMode,
 		maxWidth:       maxWidth,
+		printer:        printer,
 	}
 }
 
+// stops the bar
+func (p *HackyBar) Stop() {
+	p.chanStop <- 0
+	p.wg.Wait()
+}
+
+// starts the bar
+func (p *HackyBar) Start() {
+	go p.listenAndPrint()
+}
+
 /* designed to be run as goroutine.
-collects information about current progress and then prints the info in hackyBar */
-func (p *hackyBar) listenAndPrint() {
+collects information about current progress and then prints the info in HackyBar */
+func (p *HackyBar) listenAndPrint() {
 	lastPrint := time.Now() // time since last print
 	stop := false           // flag: stop requested
 	p.wg.Add(1)
@@ -84,7 +95,6 @@ func (p *hackyBar) listenAndPrint() {
 			if p.requestsMade == 0 {
 				p.start = time.Now()
 			}
-
 			p.requestsMade++
 
 			secsPassed := int(time.Since(p.start).Seconds())
@@ -97,33 +107,27 @@ func (p *hackyBar) listenAndPrint() {
 			stop = true
 		}
 
-		/* output actual state when:
-		- it's time to: counting since last time
-		- before stopping */
-		if time.Since(lastPrint) > p.autoUpdateFreq || stop {
-			/* NOTE, we avoid hacky mode (using !stop),
-			this is because stop can be requested when some error happened,
-			it that case we don't need to noise the unprocessed part of output with hacky string */
-			statusString := p.buildStatusString(!stop)
-			currentStatus.print(statusString, true)
-			lastPrint = time.Now()
+		// output when stop requested
+		if stop {
+			// avoid hacky mode
+			// this is because stop can be requested when some error happened,
+			// it that case we don't need to noise the unprocessed part of output with hacky string
+			statusString := p.buildStatusString(false)
+			p.printer.Println(statusString)
+			return
 		}
 
-		/* exit when stop requested */
-		if stop {
-			return
+		// usual output
+		if time.Since(lastPrint) > p.autoUpdateFreq {
+			statusString := p.buildStatusString(true)
+			p.printer.Println(statusString)
+			lastPrint = time.Now()
 		}
 	}
 }
 
-// stops the bar
-func (p *hackyBar) stop() {
-	p.chanStop <- 0
-	p.wg.Wait()
-}
-
 /* constructs full status string to be displayed */
-func (p *hackyBar) buildStatusString(hacky bool) string {
+func (p *HackyBar) buildStatusString(hacky bool) string {
 	/* the hacky-bar string is comprised of following parts |unknownOutput|knownOutput|stats|
 	- unknown output is the part of output that is not yet calculated, it is represented as 'hacky' string
 	- known output is the part of output that is already calculated, it is represented as output, encoded with *p.encoder
@@ -177,7 +181,7 @@ func (p *hackyBar) buildStatusString(hacky bool) string {
 	// put ... into the end of knownOutput if it's too long
 	if len(knownOutput) > availableSpace-splitPoint {
 		knownOutput = knownOutput[:availableSpace-splitPoint-3] + `...`
-		p.overflow = true
+		p.Overflow = true
 	}
 
 	outputString := unknownOutput[:splitPoint] + color.HiGreenBold(knownOutput)

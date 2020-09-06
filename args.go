@@ -10,6 +10,7 @@ import (
 
 	"github.com/glebarez/padre/pkg/color"
 	"github.com/glebarez/padre/pkg/encoder"
+	"github.com/glebarez/padre/pkg/util"
 )
 
 func init() {
@@ -83,7 +84,7 @@ func parseArgs() (*Args, *argErrors) {
 	}
 
 	// get terminal width
-	args.TermWidth, err = TerminalWidth()
+	args.TermWidth, err = util.TerminalWidth()
 	if err != nil {
 		// fallback to default
 		argErrs.warningf("Could not determine terminal width. Falling back to %d", defaultTerminalWidth)
@@ -134,7 +135,7 @@ func parseArgs() (*Args, *argErrors) {
 
 	// Cookies
 	if *cookies != "" {
-		args.Cookies, err = ParseCookies(*cookies)
+		args.Cookies, err = util.ParseCookies(*cookies)
 		if err != nil {
 			argErrs.flagError("-cookie", fmt.Errorf("Failed to parse cookies: %s", err))
 		}
@@ -151,7 +152,7 @@ func parseArgs() (*Args, *argErrors) {
 
 	// content-type auto-detection
 	if *args.POSTdata != "" && *args.ContentType == "" {
-		*args.ContentType = DetectContentType(*args.POSTdata)
+		*args.ContentType = util.DetectContentType(*args.POSTdata)
 		argErrs.warningf("HTTP Content-Type detected automatically as %s", color.Yellow(*args.ContentType))
 	}
 

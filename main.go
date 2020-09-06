@@ -9,11 +9,12 @@ import (
 	fcolor "github.com/fatih/color"
 	"github.com/glebarez/padre/pkg/client"
 	"github.com/glebarez/padre/pkg/color"
-	"github.com/glebarez/padre/pkg/encoder"
 	"github.com/glebarez/padre/pkg/exploit"
+	"github.com/glebarez/padre/pkg/out"
 	"github.com/glebarez/padre/pkg/printer"
 	"github.com/glebarez/padre/pkg/probe"
 	"github.com/glebarez/padre/pkg/status"
+	"github.com/glebarez/padre/pkg/util"
 )
 
 var (
@@ -25,7 +26,7 @@ func main() {
 	var err error
 
 	// initialize printer
-	print := printer.Printer{Stream: stderr}
+	print := &printer.Printer{Stream: stderr}
 
 	// parse CLI arguments
 	args, errs := parseArgs()
@@ -180,18 +181,46 @@ func main() {
 
 	for i, input := range inputs {
 		// create new status bar for current input
-		print.Stream = status.NewPrefixedWriter(
-			fmt.Sprintf("[%d/%d]", i+1, len(inputs)), stderr,
+		prefix := fmt.Sprintf("[%d/%d]", i+1, len(inputs))
+		print.Stream = status.NewPrefixedWriter(prefix, stderr)
+
+		var (
+			output []byte
+			bar    *out.HackyBar
 		)
 
 		// encrypt or decrypt
-		var output []byte
 		if *args.EncryptMode {
 			output, err = padre.Encrypt(input, nil)
 		} else {
-			output, err = decrypt(input, padre, args.Encoder)
+			if input == "" {
+				err = fmt.Errorf("empty input cipher")
+				goto Error
+			}
+
+			// decode input into bytes
+			ciphertext, err := args.Encoder.DecodeString(input)
+			if err != nil {
+				goto Error
+			}
+
+			// init hacky bar
+			bar = out.CreateHackyBar(
+				args.Encoder, len(ciphertext)-bl, *args.EncryptMode, args.TermWidth-color.TrueLen(prefix), print,
+			)
+
+			output, err = padre.Decrypt(ciphertext, nil)
+			if err != nil {
+				goto Error
+			}
 		}
 
+		// warn about output overflow
+		if bar.Overflow && util.IsTerminal(stdout) {
+			print.Errorf("Output was too wide to fit you terminal. Redirect stdout somewhere to get full output")
+		}
+
+	Error:
 		// in case of error, skip to the next input
 		if err != nil {
 			print.Error(err)
@@ -202,7 +231,7 @@ func main() {
 		// write output only if output is redirected to file or piped
 		// this is because outputs already will be in status output
 		// so printing them to STDOUT again is not necessary
-		if !isTerminal(stdout) {
+		if !util.IsTerminal(stdout) {
 			/* in case of encryption, additionally encode the produced output */
 			if *args.EncryptMode {
 				outputStr := args.Encoder.EncodeToString(output)
@@ -222,23 +251,4 @@ func main() {
 	if len(inputs) == errCount {
 		os.Exit(2)
 	}
-}
-
-func decrypt(input string, padre *exploit.Padre, encoder encoder.Encoder) ([]byte, error) {
-	if input == "" {
-		return nil, fmt.Errorf("empty input cipher")
-	}
-
-	// decode input into bytes
-	ciphertext, err := encoder.DecodeString(input)
-	if err != nil {
-		return nil, err
-	}
-
-	output, err := padre.Decrypt(ciphertext, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	return output, nil
 }
