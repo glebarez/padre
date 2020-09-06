@@ -1,19 +1,10 @@
 package main
 
 import (
-	"flag"
-	"fmt"
 	"regexp"
 
 	"github.com/glebarez/padre/pkg/color"
 )
-
-func init() {
-	// a custom usage message
-	flag.Usage = func() {
-		fmt.Fprint(stderr, usage)
-	}
-}
 
 var usage = `
 Usage: cmd(padre [OPTIONS] [INPUT])

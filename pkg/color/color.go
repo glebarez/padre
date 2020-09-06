@@ -20,17 +20,17 @@ func init() {
 
 /* coloring stringers */
 var (
-	red         = color.New(color.FgRed).SprintFunc()
+	Red         = color.New(color.FgRed).SprintFunc()
 	Bold        = color.New(color.Bold).SprintFunc()
 	Yellow      = color.New(color.FgYellow).SprintFunc()
-	redBold     = color.New(color.FgRed, color.Bold).SprintFunc()
+	RedBold     = color.New(color.FgRed, color.Bold).SprintFunc()
 	CyanBold    = color.New(color.FgCyan, color.Bold).SprintFunc()
 	Cyan        = color.New(color.FgCyan).SprintFunc()
 	GreenBold   = color.New(color.FgGreen, color.Bold).SprintFunc()
 	Green       = color.New(color.FgGreen).SprintFunc()
-	hiGreenBold = color.New(color.FgHiGreen, color.Bold).SprintFunc()
+	HiGreenBold = color.New(color.FgHiGreen, color.Bold).SprintFunc()
 	Underline   = color.New(color.Underline).SprintFunc()
-	yellowBold  = color.New(color.FgYellow, color.Bold).SprintFunc()
+	YellowBold  = color.New(color.FgYellow, color.Bold).SprintFunc()
 )
 
 // StripColor - strips ANSI color control characters from a string

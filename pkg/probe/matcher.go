@@ -27,9 +27,18 @@ func (m *matcherByFingerprint) IsPaddingError(resp *client.Response) (bool, erro
 }
 
 type matcherByRegexp struct {
-	re regexp.Regexp
+	re *regexp.Regexp
 }
 
 func (m *matcherByRegexp) IsPaddingError(resp *client.Response) (bool, error) {
 	return m.re.Match(resp.Body), nil
+}
+
+func NewMatcherByRegexp(r string) (PaddingErrorMatcher, error) {
+	re, err := regexp.Compile(r)
+	if err != nil {
+		return nil, err
+	}
+
+	return &matcherByRegexp{re}, nil
 }

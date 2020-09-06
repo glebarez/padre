@@ -1,36 +1,67 @@
 package main
 
 import (
-	"fmt"
+	"errors"
+	"net/http"
+	"os"
+	"regexp"
+	"strings"
 
-	"github.com/fatih/color"
+	"github.com/mattn/go-isatty"
+	"github.com/nsf/termbox-go"
 )
 
-var stderr = color.Error
-
-type argErrors struct {
-	errors   []error
-	warnings []string
-}
-
-func newArgErrors() *argErrors {
-	return &argErrors{
-		errors:   make([]error, 0),
-		warnings: make([]string, 0),
+/* determine width of current terminal */
+func TerminalWidth() (int, error) {
+	if err := termbox.Init(); err != nil {
+		return 0, err
 	}
+	w, _ := termbox.Size()
+	termbox.Close()
+	return w, nil
 }
 
-func (p *argErrors) error(flag string, err error) {
-	e := fmt.Errorf("Parameter %s: %w", flag, err)
-	p.errors = append(p.errors, e)
+/* is terminal? */
+func isTerminal(file *os.File) bool {
+	return isatty.IsTerminal(file.Fd()) || isatty.IsCygwinTerminal(file.Fd())
 }
 
-func (p *argErrors) errorf(flag string, format string, a ...interface{}) {
-	e := fmt.Errorf("Parameter %s: %s", fmt.Sprintf(format, a...))
-	p.errors = append(p.errors, e)
+/* parse cookie string into net/http header format */
+func ParseCookies(cookies string) (cookSlice []*http.Cookie, err error) {
+	// strip quotes if any
+	cookies = strings.Trim(cookies, `"'`)
+
+	// split several cookies into slice
+	cookieS := strings.Split(cookies, ";")
+
+	for _, c := range cookieS {
+		// strip whitespace
+		c = strings.TrimSpace(c)
+
+		// split to name and value
+		nameVal := strings.SplitN(c, "=", 2)
+		if len(nameVal) != 2 {
+			return nil, errors.New("failed to parse cookie")
+		}
+
+		cookSlice = append(cookSlice, &http.Cookie{Name: nameVal[0], Value: nameVal[1]})
+	}
+	return cookSlice, nil
 }
 
-func (p *argErrors) warningf(flag string, format string, a ...interface{}) {
-	w := fmt.Sprintf("Parameter %s: %s", fmt.Sprintf(format, a...))
-	p.warnings = append(p.warnings, w)
+/* detect HTTP Content-Type */
+func DetectContentType(data string) string {
+	var contentType string
+
+	if data[0] == '{' || data[0] == '[' {
+		contentType = "application/json"
+	} else {
+		match, _ := regexp.MatchString("([^=]+=[^=]+&?)+", data)
+		if match {
+			contentType = "application/x-www-form-urlencoded"
+		} else {
+			contentType = http.DetectContentType([]byte(data))
+		}
+	}
+	return contentType
 }

@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/glebarez/padre/pkg/color"
 	"github.com/glebarez/padre/pkg/encoder"
 	"github.com/glebarez/padre/pkg/printer"
 )
@@ -152,7 +153,7 @@ func (p *hackyBar) buildStatusString(hacky bool) string {
 
 	/* if we have enough space, the logic is simple */
 	if availableSpace >= len(unknownOutput)+len(knownOutput) {
-		output := unknownOutput + hiGreenBold(knownOutput)
+		output := unknownOutput + color.HiGreenBold(knownOutput)
 
 		// pad with spaces to make stats always appear at the right edge of the screen
 		output += strings.Repeat(" ", availableSpace-len(unknownOutput)-len(knownOutput))
@@ -179,7 +180,7 @@ func (p *hackyBar) buildStatusString(hacky bool) string {
 		p.overflow = true
 	}
 
-	outputString := unknownOutput[:splitPoint] + hiGreenBold(knownOutput)
+	outputString := unknownOutput[:splitPoint] + color.HiGreenBold(knownOutput)
 
 	/* return the final string */
 	return fmt.Sprintf("%s %s", outputString, stats)

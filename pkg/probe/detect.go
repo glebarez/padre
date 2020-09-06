@@ -8,7 +8,7 @@ import (
 )
 
 // attempts to auto-detect padding oracle fingerprint
-func detectPaddingErrorFingerprint(c *client.Client, blockLen int) (PaddingErrorMatcher, error) {
+func DetectPaddingErrorFingerprint(c *client.Client, blockLen int) (PaddingErrorMatcher, error) {
 	// create random block of ciphertext (IV prepended)
 	cipher := util.RandomSlice(blockLen * 2)
 

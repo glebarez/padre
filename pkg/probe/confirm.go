@@ -9,7 +9,7 @@ import (
 
 // confirms existence of padding oracle
 // returns true if confirmed, false otherwise
-func confirmPaddingOracle(c *client.Client, matcher PaddingErrorMatcher, blockLen int) (bool, error) {
+func ConfirmPaddingOracle(c *client.Client, matcher PaddingErrorMatcher, blockLen int) (bool, error) {
 	// create random block of ciphertext (IV prepended)
 	cipher := util.RandomSlice(blockLen * 2)
 

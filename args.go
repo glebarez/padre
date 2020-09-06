@@ -8,21 +8,29 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/glebarez/padre/pkg/color"
 	"github.com/glebarez/padre/pkg/encoder"
-	"github.com/glebarez/padre/pkg/out"
 	"github.com/glebarez/padre/pkg/util"
 )
+
+func init() {
+	// a custom usage message
+	flag.Usage = func() {
+		fmt.Fprint(stderr, usage)
+	}
+}
 
 const (
 	defaultConcurrency   = 30
 	defaultTerminalWidth = 80
+	maxConcurrency       = 256
 )
 
 // Args - CLI flags
 type Args struct {
 	BlockLen            *int
 	Parallel            *int
-	TargetURL           *url.URL
+	TargetURL           *string
 	Encoder             encoder.Encoder
 	PaddingErrorPattern *string
 	ProxyURL            *url.URL
@@ -47,9 +55,9 @@ func parseArgs() (*Args, *argErrors) {
 	args.POSTdata = flag.String("post", "", "")
 	args.ContentType = flag.String("ct", "", "")
 	args.EncryptMode = flag.Bool("enc", false, "")
+	args.TargetURL = flag.String("u", "", "")
 
 	// flags that need additional processing
-	targetURL := flag.String("u", "", "")
 	proxyURL := flag.String("proxy", "", "")
 	encoding := flag.String("e", "b64", "")
 	replacements := flag.String("r", "", "")
@@ -59,37 +67,37 @@ func parseArgs() (*Args, *argErrors) {
 	flag.Parse()
 
 	// general check on URL, POSTdata or Cookies for having the $ placeholder
-	match1, err := regexp.MatchString(`\$`, *targetURL)
+	match1, err := regexp.MatchString(`\$`, *args.TargetURL)
 	if err != nil {
-		argErrs.error("-u", err)
+		argErrs.flagError("-u", err)
 	}
 	match2, err := regexp.MatchString(`\$`, *args.POSTdata)
 	if err != nil {
-		argErrs.error("-post", err))
+		argErrs.flagError("-post", err)
 	}
 	match3, err := regexp.MatchString(`\$`, *cookies)
 	if err != nil {
-		errors.add(argError("-cookie", err))
+		argErrs.flagError("-cookie", err)
 	}
 	if !(match1 || match2 || match3) {
-		errors.add(argError("-u, -post, -cookie", "Either URL, POST data or Cookie must contain the $ placeholder"))
+		argErrs.flagErrorf("-u, -post, -cookie", "Either URL, POST data or Cookie must contain the $ placeholder")
 	}
 
 	// get terminal width
 	args.TermWidth, err = util.TerminalWidth()
 	if err != nil {
 		// fallback to default
-		warnings.add(fmt.Sprintf("Could not determine terminal width. Falling back to %d", defaultTerminalWidth))
+		argErrs.warningf("Could not determine terminal width. Falling back to %d", defaultTerminalWidth)
 		args.TermWidth = defaultTerminalWidth
 	}
 
 	// Target URL
-	if *targetURL == "" {
-		errors.add(argError("-u", "Must be specified"))
+	if *args.TargetURL == "" {
+		argErrs.flagErrorf("-u", "Must be specified")
 	} else {
-		args.TargetURL, err = url.Parse(*targetURL)
+		_, err = url.Parse(*args.TargetURL)
 		if err != nil {
-			errors.add(argError("-u", fmt.Errorf("Failed to parse URL: %w", err)))
+			argErrs.flagError("-u", fmt.Errorf("Failed to parse URL: %w", err))
 		}
 	}
 
@@ -97,13 +105,13 @@ func parseArgs() (*Args, *argErrors) {
 	if *proxyURL != "" {
 		args.ProxyURL, err = url.Parse(*proxyURL)
 		if err != nil {
-			errors.add(argError("-proxy", fmt.Errorf("Failed to parse URL: %w", err)))
+			argErrs.flagError("-proxy", fmt.Errorf("Failed to parse URL: %w", err))
 		}
 	}
 
 	// Encoder (With replacements)
 	if len(*replacements)%2 == 1 {
-		errors.add(argError("-r", "String must be of even length (0,2,4, etc.)"))
+		argErrs.flagErrorf("-r", "String must be of even length (0,2,4, etc.)")
 	} else {
 		switch strings.ToLower(*encoding) {
 		case "b64":
@@ -111,7 +119,7 @@ func parseArgs() (*Args, *argErrors) {
 		case "lhex":
 			args.Encoder = encoder.NewLHEXencoder(*replacements)
 		default:
-			errors.add(argError("-e", "Unsupported encoding specified"))
+			argErrs.flagErrorf("-e", "Unsupported encoding specified")
 		}
 	}
 
@@ -122,24 +130,30 @@ func parseArgs() (*Args, *argErrors) {
 	case 16:
 	case 32:
 	default:
-		errors.add(argError("-b", "Unsupported value passed. Omit, or specify one of: 8, 16, 32"))
+		argErrs.flagErrorf("-b", "Unsupported value passed. Omit, or specify one of: 8, 16, 32")
 	}
 
 	// Cookies
 	if *cookies != "" {
 		args.Cookies, err = util.ParseCookies(*cookies)
 		if err != nil {
-			errors.add(argError("-cookie", fmt.Sprintf("Failed to parse cookies: %s", err)))
+			argErrs.flagError("-cookie", fmt.Errorf("Failed to parse cookies: %s", err))
 		}
 	}
 
 	// Concurrency
 	if *args.Parallel < 1 {
-		argWarning("-p", fmt.Sprintf("Cannot be less than 1, value corrected to default value (%d)", defaultConcurrency))
+		argErrs.flagWarningf("-p", "Cannot be less than 1, value corrected to default value (%d)", defaultConcurrency)
 		*args.Parallel = defaultConcurrency
-	} else if *args.Parallel > 256 {
-		argWarning("-p", "Cannot be greater than 256, value reduced to 256")
-		*args.Parallel = 256
+	} else if *args.Parallel > maxConcurrency {
+		argErrs.flagWarningf("-p", "Value reduced to maximum allowed value (%d)", maxConcurrency)
+		*args.Parallel = maxConcurrency
+	}
+
+	// content-type auto-detection
+	if *args.POSTdata != "" && *args.ContentType == "" {
+		*args.ContentType = util.DetectContentType(*args.POSTdata)
+		argErrs.warningf("HTTP Content-Type detected automatically as %s", color.Yellow(*args.ContentType))
 	}
 
 	// decide on input source
@@ -151,14 +165,8 @@ func parseArgs() (*Args, *argErrors) {
 		args.Input = &flag.Args()[0]
 	default:
 		// too many positional arguments
-		argError("[INPUT]", "Specify exactly one input string, or pipe into STDIN")
+		argErrs.flagErrorf("[INPUT]", "Specify exactly one input string, or pipe into STDIN")
 	}
 
-	// if errors in arguments, return here with message
-	if hadErrors {
-		out.Print(fmt.Sprintf("\nRun with %s option to see usage help\n", out.CyanBold("-h")))
-		return false, nil
-	}
-
-	return true, args
+	return args, argErrs
 }

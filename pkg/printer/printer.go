@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"io"
 	"strings"
+
+	"github.com/glebarez/padre/pkg/color"
 )
 
 const (
@@ -15,15 +17,15 @@ const (
 )
 
 type Printer struct {
-	stream io.Writer
+	Stream io.Writer
 }
 
 func (p *Printer) Print(a ...interface{}) {
-	fmt.Fprint(p.stream, a)
+	fmt.Fprint(p.Stream, a)
 }
 
 func (p *Printer) Println(a ...interface{}) {
-	fmt.Fprintln(p.stream, a)
+	fmt.Fprintln(p.Stream, a)
 }
 
 func (p *Printer) Printcr(a ...interface{}) {
@@ -35,14 +37,14 @@ func (p *Printer) printWithPrefix(prefix, message string) {
 	lines := strings.Split(message, LF)
 	for i, line := range lines {
 		if i != 0 {
-			prefix = strings.Repeat(" ", len(stripColor(prefix)))
+			prefix = strings.Repeat(" ", len(color.StripColor(prefix)))
 		}
 		p.Println(fmt.Sprintf("%s %s", prefix, line))
 	}
 }
 
 func (p *Printer) Error(err error) {
-	p.printWithPrefix(redBold("[-]"), red(err))
+	p.printWithPrefix(color.RedBold("[-]"), color.Red(err))
 
 	// // print hints if available
 	// var ewh *errors.ErrWithHints
@@ -51,22 +53,26 @@ func (p *Printer) Error(err error) {
 	// }
 }
 
-func (p *Printer) Hint(message string) {
-	p.printWithPrefix(CyanBold("[hint]"), message)
+func (p *Printer) Errorf(format string, a ...interface{}) {
+	p.Error(fmt.Errorf(format, a...))
 }
 
-func (p *Printer) Warning(message string) {
-	p.printWithPrefix(yellowBold("[!]"), message)
+func (p *Printer) Hint(format string, a ...interface{}) {
+	p.printWithPrefix(color.CyanBold("[hint]"), fmt.Sprintf(format, a...))
 }
 
-func (p *Printer) Success(message string) {
-	p.printWithPrefix(GreenBold("[+]"), message)
+func (p *Printer) Warning(format string, a ...interface{}) {
+	p.printWithPrefix(color.YellowBold("[!]"), fmt.Sprintf(format, a...))
 }
 
-func (p *Printer) Info(message string) {
-	p.printWithPrefix(CyanBold("[i]"), message)
+func (p *Printer) Success(format string, a ...interface{}) {
+	p.printWithPrefix(color.GreenBold("[+]"), fmt.Sprintf(format, a...))
+}
+
+func (p *Printer) Info(message string, a ...interface{}) {
+	p.printWithPrefix(color.CyanBold("[i]"), fmt.Sprintf(message, a...))
 }
 
 func (p *Printer) Action(s string) {
-	p.Printcr(Yellow(s))
+	p.Printcr(color.Yellow(s))
 }
