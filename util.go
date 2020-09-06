@@ -11,7 +11,7 @@ import (
 	"github.com/nsf/termbox-go"
 )
 
-/* determine width of current terminal */
+// TerminalWidth determines width of current terminal in characters
 func TerminalWidth() (int, error) {
 	if err := termbox.Init(); err != nil {
 		return 0, err
@@ -21,12 +21,12 @@ func TerminalWidth() (int, error) {
 	return w, nil
 }
 
-/* is terminal? */
+// isTerminal checks whether file is a terminal
 func isTerminal(file *os.File) bool {
 	return isatty.IsTerminal(file.Fd()) || isatty.IsCygwinTerminal(file.Fd())
 }
 
-/* parse cookie string into net/http header format */
+// ParseCookies parses cookies in raw string format into net/http format
 func ParseCookies(cookies string) (cookSlice []*http.Cookie, err error) {
 	// strip quotes if any
 	cookies = strings.Trim(cookies, `"'`)
@@ -49,7 +49,7 @@ func ParseCookies(cookies string) (cookSlice []*http.Cookie, err error) {
 	return cookSlice, nil
 }
 
-/* detect HTTP Content-Type */
+// DetectContentType detects HTTP content type based on provided POST data
 func DetectContentType(data string) string {
 	var contentType string
 
