@@ -9,6 +9,7 @@ import (
 	fcolor "github.com/fatih/color"
 	"github.com/glebarez/padre/pkg/client"
 	"github.com/glebarez/padre/pkg/color"
+	"github.com/glebarez/padre/pkg/encoder"
 	"github.com/glebarez/padre/pkg/exploit"
 	"github.com/glebarez/padre/pkg/out"
 	"github.com/glebarez/padre/pkg/printer"
@@ -59,14 +60,13 @@ func main() {
 				MaxConnsPerHost: *args.Parallel,
 				Proxy:           http.ProxyURL(args.ProxyURL),
 			}},
-		URL:                    *args.TargetURL,
-		POSTdata:               *args.POSTdata,
-		Cookies:                args.Cookies,
-		CihperPlaceholder:      `$`,
-		Encoder:                args.Encoder,
-		Concurrency:            *args.Parallel,
-		ContentType:            *args.ContentType,
-		NewRequestEventHandler: nil,
+		URL:               *args.TargetURL,
+		POSTdata:          *args.POSTdata,
+		Cookies:           args.Cookies,
+		CihperPlaceholder: `$`,
+		Encoder:           args.Encoder,
+		Concurrency:       *args.Parallel,
+		ContentType:       *args.ContentType,
 	}
 
 	// create matcher for padding error
@@ -191,7 +191,15 @@ func main() {
 
 		// encrypt or decrypt
 		if *args.EncryptMode {
-			output, err = padre.Encrypt(input, nil)
+			// init hacky bar
+			bar = out.CreateHackyBar(
+				encoder.NewASCIIencoder(), len(input)-bl, *args.EncryptMode, args.TermWidth-color.TrueLen(prefix)-1, print,
+			)
+
+			// provide HTTP client with event-channel, so we can count RPS
+			client.RequestEventChan = bar.ChanReq
+
+			output, err = padre.Encrypt(input, bar.ChanOutput)
 		} else {
 			if input == "" {
 				err = fmt.Errorf("empty input cipher")
@@ -206,10 +214,14 @@ func main() {
 
 			// init hacky bar
 			bar = out.CreateHackyBar(
-				args.Encoder, len(ciphertext)-bl, *args.EncryptMode, args.TermWidth-color.TrueLen(prefix), print,
+				args.Encoder, len(ciphertext)-bl, *args.EncryptMode, args.TermWidth-color.TrueLen(prefix)-1, print,
 			)
 
-			output, err = padre.Decrypt(ciphertext, nil)
+			// provide HTTP client with event-channel, so we can count RPS
+			client.RequestEventChan = bar.ChanReq
+
+			// do decryption
+			output, err = padre.Decrypt(ciphertext, bar.ChanOutput)
 			if err != nil {
 				goto Error
 			}
@@ -221,6 +233,9 @@ func main() {
 		}
 
 	Error:
+		// stop the bar
+		bar.Stop()
+
 		// in case of error, skip to the next input
 		if err != nil {
 			print.Error(err)

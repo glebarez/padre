@@ -31,8 +31,8 @@ type HackyBar struct {
 	Overflow      bool            // flag: terminal width overflowed, data was too wide
 
 	// communications
-	chanOutput chan byte      // delivering every byte of output via this channel
-	chanReq    chan byte      // to deliver indicator of yet-another http request made
+	ChanOutput chan byte      // delivering every byte of output via this channel
+	ChanReq    chan byte      // to deliver indicator of yet-another http request made
 	chanStop   chan byte      // used to send a stop-signal to bar
 	wg         sync.WaitGroup // used to wait for gracefull exit after stop signal sent
 
@@ -53,8 +53,8 @@ func CreateHackyBar(encoder encoder.Encoder, outputByteLen int, encryptMode bool
 		outputData:     []byte{},
 		outputByteLen:  outputByteLen,
 		wg:             sync.WaitGroup{},
-		chanOutput:     make(chan byte, 1),
-		chanReq:        make(chan byte, 256),
+		ChanOutput:     make(chan byte, 1),
+		ChanReq:        make(chan byte, 256),
 		chanStop:       make(chan byte),
 		autoUpdateFreq: time.Second / time.Duration(updateFreq),
 		encoder:        encoder,
@@ -87,11 +87,11 @@ func (p *HackyBar) listenAndPrint() {
 	for {
 		select {
 		/* yet another output byte produced */
-		case b := <-p.chanOutput:
+		case b := <-p.ChanOutput:
 			p.outputData = append([]byte{b}, p.outputData...) //TODO: optimize this
 
 		/* yet another HTTP request was made. Update stats */
-		case <-p.chanReq:
+		case <-p.ChanReq:
 			if p.requestsMade == 0 {
 				p.start = time.Now()
 			}
@@ -120,7 +120,7 @@ func (p *HackyBar) listenAndPrint() {
 		// usual output
 		if time.Since(lastPrint) > p.autoUpdateFreq {
 			statusString := p.buildStatusString(true)
-			p.printer.Println(statusString)
+			p.printer.Printcr(statusString)
 			lastPrint = time.Now()
 		}
 	}

@@ -38,10 +38,10 @@ type Client struct {
 	// the content type of to be sent HTTP requests
 	ContentType string
 
-	// stats collector: this channel (if set) will be provided with
-	// byte value (0x00) every time the new HTTP request is made.
-	// (external caller can use it to calculate RPS)
-	NewRequestEventHandler *func()
+	// if this channel is not nil, it will be provided with byte value every time
+	// the new HTTP request is made, so that RPS stats can be collected from
+	// outside parties
+	RequestEventChan chan byte
 }
 
 // DoRequest - send HTTP request with cipher, encoded according to config
@@ -96,8 +96,8 @@ func (c *Client) DoRequest(ctx context.Context, cipher []byte) (*Response, error
 	defer resp.Body.Close()
 
 	// report about made request to status
-	if c.NewRequestEventHandler != nil {
-		(*c.NewRequestEventHandler)()
+	if c.RequestEventChan != nil {
+		c.RequestEventChan <- 0
 	}
 
 	// read body
