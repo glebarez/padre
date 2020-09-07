@@ -21,11 +21,11 @@ type Printer struct {
 }
 
 func (p *Printer) Print(a ...interface{}) {
-	fmt.Fprint(p.Stream, a)
+	fmt.Fprint(p.Stream, a...)
 }
 
 func (p *Printer) Println(a ...interface{}) {
-	fmt.Fprintln(p.Stream, a)
+	fmt.Fprintln(p.Stream, a...)
 }
 
 func (p *Printer) Printcr(a ...interface{}) {
@@ -69,8 +69,8 @@ func (p *Printer) Success(format string, a ...interface{}) {
 	p.printWithPrefix(color.GreenBold("[+]"), fmt.Sprintf(format, a...))
 }
 
-func (p *Printer) Info(message string, a ...interface{}) {
-	p.printWithPrefix(color.CyanBold("[i]"), fmt.Sprintf(message, a...))
+func (p *Printer) Info(format string, a ...interface{}) {
+	p.printWithPrefix(color.CyanBold("[i]"), fmt.Sprintf(format, a...))
 }
 
 func (p *Printer) Action(s string) {
