@@ -33,7 +33,6 @@ type HackyBar struct {
 	// communications
 	ChanOutput chan byte      // delivering every byte of output via this channel
 	ChanReq    chan byte      // to deliver indicator of yet-another http request made
-	chanStop   chan byte      // used to send a stop-signal to bar
 	wg         sync.WaitGroup // used to wait for gracefull exit after stop signal sent
 
 	// RPS calculation
@@ -55,7 +54,6 @@ func CreateHackyBar(encoder encoder.Encoder, outputByteLen int, encryptMode bool
 		wg:             sync.WaitGroup{},
 		ChanOutput:     make(chan byte, 1),
 		ChanReq:        make(chan byte, 256),
-		chanStop:       make(chan byte),
 		autoUpdateFreq: time.Second / time.Duration(updateFreq),
 		encoder:        encoder,
 		encryptMode:    encryptMode,
@@ -66,7 +64,7 @@ func CreateHackyBar(encoder encoder.Encoder, outputByteLen int, encryptMode bool
 
 // stops the bar
 func (p *HackyBar) Stop() {
-	p.chanStop <- 0
+	close(p.ChanOutput)
 	p.wg.Wait()
 }
 
@@ -78,8 +76,17 @@ func (p *HackyBar) Start() {
 /* designed to be run as goroutine.
 collects information about current progress and then prints the info in HackyBar */
 func (p *HackyBar) listenAndPrint() {
-	lastPrint := time.Now() // time since last print
-	stop := false           // flag: stop requested
+	var (
+		// time since last print
+		lastPrint time.Time
+
+		// flag: output channel closed (no more data expected)
+		outputChanClosed bool
+
+		// counter for total output bytes recieved
+		outputBytesRecieved int
+	)
+
 	p.wg.Add(1)
 	defer p.wg.Done()
 
@@ -87,8 +94,13 @@ func (p *HackyBar) listenAndPrint() {
 	for {
 		select {
 		/* yet another output byte produced */
-		case b := <-p.ChanOutput:
-			p.outputData = append([]byte{b}, p.outputData...) //TODO: optimize this
+		case b, ok := <-p.ChanOutput:
+			if ok {
+				p.outputData = append([]byte{b}, p.outputData...) //TODO: optimize this
+				outputBytesRecieved++
+			} else {
+				outputChanClosed = true
+			}
 
 		/* yet another HTTP request was made. Update stats */
 		case <-p.ChanReq:
@@ -102,13 +114,10 @@ func (p *HackyBar) listenAndPrint() {
 				p.rps = p.requestsMade / int(secsPassed)
 			}
 
-		/* stop requested */
-		case <-p.chanStop:
-			stop = true
 		}
 
-		// output when stop requested
-		if stop {
+		// the final status print
+		if outputChanClosed || outputBytesRecieved == p.outputByteLen {
 			// avoid hacky mode
 			// this is because stop can be requested when some error happened,
 			// it that case we don't need to noise the unprocessed part of output with hacky string
@@ -117,9 +126,9 @@ func (p *HackyBar) listenAndPrint() {
 			return
 		}
 
-		// usual output
+		// usual output (still in progress)
 		if time.Since(lastPrint) > p.autoUpdateFreq {
-			statusString := p.buildStatusString(true)
+			statusString := p.buildStatusString(false)
 			p.printer.Printcr(statusString)
 			lastPrint = time.Now()
 		}

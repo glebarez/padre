@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"log"
 	"net/http"
 	"os"
 
@@ -16,6 +17,10 @@ import (
 	"github.com/glebarez/padre/pkg/probe"
 	"github.com/glebarez/padre/pkg/status"
 	"github.com/glebarez/padre/pkg/util"
+
+	_ "net/http/pprof"
+
+	_ "net/http"
 )
 
 var (
@@ -24,6 +29,11 @@ var (
 )
 
 func main() {
+
+	go func() {
+		log.Println(http.ListenAndServe("0.0.0.0:6060", nil))
+	}()
+
 	var err error
 
 	// initialize printer
@@ -193,11 +203,12 @@ func main() {
 		if *args.EncryptMode {
 			// init hacky bar
 			bar = out.CreateHackyBar(
-				encoder.NewASCIIencoder(), len(input)-bl, *args.EncryptMode, args.TermWidth-color.TrueLen(prefix)-1, print,
+				args.Encoder, len(input)-bl, *args.EncryptMode, args.TermWidth-color.TrueLen(prefix)-1, print,
 			)
 
 			// provide HTTP client with event-channel, so we can count RPS
 			client.RequestEventChan = bar.ChanReq
+			bar.Start()
 
 			output, err = padre.Encrypt(input, bar.ChanOutput)
 		} else {
@@ -214,11 +225,12 @@ func main() {
 
 			// init hacky bar
 			bar = out.CreateHackyBar(
-				args.Encoder, len(ciphertext)-bl, *args.EncryptMode, args.TermWidth-color.TrueLen(prefix)-1, print,
+				encoder.NewASCIIencoder(), len(ciphertext)-bl, *args.EncryptMode, args.TermWidth-color.TrueLen(prefix)-1, print,
 			)
 
 			// provide HTTP client with event-channel, so we can count RPS
 			client.RequestEventChan = bar.ChanReq
+			bar.Start()
 
 			// do decryption
 			output, err = padre.Decrypt(ciphertext, bar.ChanOutput)

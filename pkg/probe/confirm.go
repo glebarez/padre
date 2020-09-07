@@ -19,11 +19,8 @@ func ConfirmPaddingOracle(c *client.Client, matcher PaddingErrorMatcher, blockLe
 	// channel to soak results
 	chanResult := make(chan *client.ProbeResult, 256)
 
-	// fingerprint probes
-	go c.SendProbes(context.Background(), cipher, pos, chanResult)
-
 	// send probes
-	c.SendProbes(context.Background(), cipher, pos, chanResult)
+	go c.SendProbes(context.Background(), cipher, pos, chanResult)
 
 	// count padding errors
 	count := 0

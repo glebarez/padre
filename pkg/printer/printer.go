@@ -18,18 +18,25 @@ const (
 
 type Printer struct {
 	Stream io.Writer
+	cr     bool
 }
 
-func (p *Printer) Print(a ...interface{}) {
-	fmt.Fprint(p.Stream, a...)
+func (p *Printer) Print(format string, a ...interface{}) {
+	if p.cr {
+		fmt.Fprint(p.Stream, CR)
+		p.cr = false
+	}
+	fmt.Fprint(p.Stream, fmt.Sprintf(format, a...))
 }
 
-func (p *Printer) Println(a ...interface{}) {
-	fmt.Fprintln(p.Stream, a...)
+func (p *Printer) Println(format string, a ...interface{}) {
+	p.Print(format, a...)
+	p.Print(LF)
 }
 
-func (p *Printer) Printcr(a ...interface{}) {
-	p.Print(fmt.Sprint(a...), CR)
+func (p *Printer) Printcr(format string, a ...interface{}) {
+	p.Print(format, a...)
+	p.cr = true
 }
 
 func (p *Printer) printWithPrefix(prefix, message string) {
