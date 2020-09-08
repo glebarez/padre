@@ -3,31 +3,25 @@ package output
 import (
 	"fmt"
 	"io"
-	"strings"
 
 	"github.com/glebarez/padre/pkg/color"
 )
 
+// some often used strings
 const (
-	// LF Line feed
-	LF = "\n"
-
-	// CR Carret return
-	CR = "\x1b\x5b2K\r"
-
-	empty = ""
-	space = " "
+	_LF = "\n"           // LF Line feed
+	_CR = "\x1b\x5b2K\r" // Clear Line + CR Carret return
 )
 
+// Printer is the printing facility
 type Printer struct {
-	Stream        io.Writer
-	TerminalWidth int
-	cr            bool
-	prefix        string
-	indent        string
-	lineFeeded    bool
+	Stream        io.Writer // the ultimate stream to print into
+	TerminalWidth int       // available terminal width
+	cr            bool      // flag: caret return requested on next print (= print on same line please)
+	prefix        prefix    // current  prefix to use
 }
 
+// base internal print, everyone else must build upon this
 func (p *Printer) print(s string) {
 	fmt.Fprint(p.Stream, s)
 }
@@ -35,42 +29,34 @@ func (p *Printer) print(s string) {
 func (p *Printer) Print(s string) {
 	// CR debt ?
 	if p.cr {
-		p.print(CR)
+		p.print(_CR)
 		p.cr = false
 	}
 
-	// prefix logic (if set)
-	if p.prefix != empty {
-		if p.lineFeeded {
-			p.print(p.indent)
-		} else {
-			p.print(p.prefix)
-			p.print(space)
-		}
-	}
+	// prefix
+	p.print(p.prefix.string())
 
-	// base print
+	// print the contents
 	p.print(s)
 }
 
-func (p *Printer) SetPrefix(prefix string) {
-	p.prefix = prefix
-	p.indent = strings.Repeat(space, color.TrueLen(prefix)+1)
-	p.lineFeeded = false
-	p.TerminalWidth -= len(p.indent)
+func (p *Printer) AddPrefix(prefix string) {
+	child := *p.prefix.add(prefix)
+	p.prefix = child
+	p.TerminalWidth -= p.prefix.len
 }
 
-func (p *Printer) ResetPrefix() {
-	p.TerminalWidth += len(p.indent)
-	p.SetPrefix(empty)
+func (p *Printer) RemovePrefix() {
+	p.TerminalWidth += p.prefix.len
+	p.prefix = *p.prefix.outterPrefix
 }
 
 func (p *Printer) Println(s string) {
 	p.Print(s)
-	p.print(LF)
+	p.print(_LF)
 
 	// set flag that line was feeded
-	p.lineFeeded = true
+	p.prefix.setLF()
 }
 
 func (p *Printer) Printcr(s string) {
@@ -84,7 +70,6 @@ func (p *Printer) Printf(format string, a ...interface{}) {
 
 func (p *Printer) Printlnf(format string, a ...interface{}) {
 	p.Println(fmt.Sprintf(format, a...))
-	p.Print(LF)
 }
 
 func (p *Printer) Printcrf(format string, a ...interface{}) {
@@ -93,24 +78,13 @@ func (p *Printer) Printcrf(format string, a ...interface{}) {
 }
 
 func (p *Printer) printWithPrefix(prefix, message string) {
-	message = strings.TrimSpace(message)
-	lines := strings.Split(message, LF)
-	for i, line := range lines {
-		if i != 0 {
-			prefix = strings.Repeat(" ", len(color.StripColor(prefix)))
-		}
-		p.Println(fmt.Sprintf("%s %s", prefix, line))
-	}
+	p.AddPrefix(prefix)
+	p.Println(message)
+	p.RemovePrefix()
 }
 
 func (p *Printer) Error(err error) {
 	p.printWithPrefix(color.RedBold("[-]"), color.Red(err))
-
-	// // print hints if available
-	// var ewh *errors.ErrWithHints
-	// if errors.As(err, &ewh) {
-	// 	p.printHint(strings.Join(ewh.hints, LF))
-	// }
 }
 
 func (p *Printer) Errorf(format string, a ...interface{}) {

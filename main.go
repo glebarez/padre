@@ -202,7 +202,7 @@ func main() {
 	for i, input := range inputs {
 		// create new status bar for current input
 		prefix := color.CyanBold(fmt.Sprintf("[%d/%d]", i+1, len(inputs)))
-		print.SetPrefix(prefix)
+		print.AddPrefix(prefix)
 
 		var (
 			output []byte
