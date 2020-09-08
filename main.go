@@ -12,8 +12,7 @@ import (
 	"github.com/glebarez/padre/pkg/color"
 	"github.com/glebarez/padre/pkg/encoder"
 	"github.com/glebarez/padre/pkg/exploit"
-	"github.com/glebarez/padre/pkg/out"
-	"github.com/glebarez/padre/pkg/printer"
+	out "github.com/glebarez/padre/pkg/output"
 	"github.com/glebarez/padre/pkg/probe"
 	"github.com/glebarez/padre/pkg/util"
 
@@ -36,7 +35,7 @@ func main() {
 	var err error
 
 	// initialize printer
-	print := &printer.Printer{Stream: stderr}
+	print := &output.Printer{Stream: stderr}
 
 	// parse CLI arguments
 	args, errs := parseArgs()
