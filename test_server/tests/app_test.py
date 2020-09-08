@@ -1,10 +1,9 @@
 from argparse import Namespace
 
-import pytest
+import pytest, itertools
 
 from app import app
 from encoder import Encoding
-
 
 @pytest.fixture(params=list(Encoding))
 def encoding(request):

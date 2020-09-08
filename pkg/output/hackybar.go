@@ -24,6 +24,7 @@ const updateFreq = 13
 
 type HackyBar struct {
 	// output info
+	printer       *Printer        // printer to use
 	outputData    []byte          // container for byte-output
 	outputByteLen int             // total number of bytes in output (before encoding)
 	encoder       encoder.Encoder // encoder for the byte-output
@@ -42,11 +43,9 @@ type HackyBar struct {
 	// the output properties
 	autoUpdateFreq time.Duration // interval at which the bar must be updated
 	encryptMode    bool          // whether encrypt mode is used
-	maxWidth       int           // maximum width of bar in characters
-	printer        *Printer
 }
 
-func CreateHackyBar(encoder encoder.Encoder, outputByteLen int, encryptMode bool, maxWidth int, printer *Printer) *HackyBar {
+func CreateHackyBar(encoder encoder.Encoder, outputByteLen int, encryptMode bool, printer *Printer) *HackyBar {
 	return &HackyBar{
 		outputData:     []byte{},
 		outputByteLen:  outputByteLen,
@@ -56,7 +55,6 @@ func CreateHackyBar(encoder encoder.Encoder, outputByteLen int, encryptMode bool
 		autoUpdateFreq: time.Second / time.Duration(updateFreq),
 		encoder:        encoder,
 		encryptMode:    encryptMode,
-		maxWidth:       maxWidth,
 		printer:        printer,
 	}
 }
@@ -157,7 +155,7 @@ func (p *HackyBar) buildStatusString(hacky bool) string {
 		"[%d/%d] | reqs: %d (%d/sec)", len(p.outputData), p.outputByteLen, p.requestsMade, p.rps)
 
 	/* get available space */
-	availableSpace := p.maxWidth - len(stats) - 1 // -1 is for the space between output and stats
+	availableSpace := p.printer.TerminalWidth - len(stats) - 1 // -1 is for the space between output and stats
 	if availableSpace < 5 {
 		// a general fool-check
 		panic("Your terminal is to narrow. Use a real one")

@@ -23,6 +23,16 @@ def AES_key():
 
 app = Flask(__name__)
 
+def get_encoding(request):
+    # get encoding (defaults to Base64 if not specified)
+    encoding = request.values.get("enc", None)
+    if encoding is None:
+        encoding = Encoding.B64.name
+    else:
+        encoding = encoding.upper()
+
+    return encoding
+
 
 # encrypts the plaintext
 @app.route("/encrypt", methods=["GET", "POST"])
@@ -37,10 +47,8 @@ def route_encrypt():
     # encrypt the data (encoded to bytes)
     cipher = crypto.encrypt(plain.encode(), AES_key())
 
-    # get encoding (defaults to Base64 if not specified)
-    encoding = request.values.get("enc", None)
-    if encoding is None:
-        encoding = Encoding.B64.name
+    # get encoding
+    encoding = get_encoding(request)
 
     # encode encrypted chunk
     encoded_cipher = encoder.encode(data=cipher, encoding=Encoding[encoding])
@@ -59,10 +67,8 @@ def route_decrypt():
             "Pass encoded chipher to decrypt using 'cipher' parameter in URL or POST data"
         )
 
-    # get encoding (defaults to Base64 if not specified)
-    encoding = request.values.get("enc", None)
-    if encoding is None:
-        encoding = Encoding.B64.name
+    # get encoding
+    encoding = get_encoding(request)
 
     # decode cipher into bytes
     cipher = encoder.decode(data=encoded_cipher, encoding=Encoding[encoding])

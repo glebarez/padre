@@ -20,11 +20,12 @@ const (
 )
 
 type Printer struct {
-	Stream     io.Writer
-	cr         bool
-	prefix     string
-	indent     string
-	lineFeeded bool
+	Stream        io.Writer
+	TerminalWidth int
+	cr            bool
+	prefix        string
+	indent        string
+	lineFeeded    bool
 }
 
 func (p *Printer) print(s string) {
@@ -44,6 +45,7 @@ func (p *Printer) Print(s string) {
 			p.print(p.indent)
 		} else {
 			p.print(p.prefix)
+			p.print(space)
 		}
 	}
 
@@ -53,11 +55,13 @@ func (p *Printer) Print(s string) {
 
 func (p *Printer) SetPrefix(prefix string) {
 	p.prefix = prefix
-	p.indent = strings.Repeat(space, color.TrueLen(prefix))
+	p.indent = strings.Repeat(space, color.TrueLen(prefix)+1)
 	p.lineFeeded = false
+	p.TerminalWidth -= len(p.indent)
 }
 
 func (p *Printer) ResetPrefix() {
+	p.TerminalWidth += len(p.indent)
 	p.SetPrefix(empty)
 }
 

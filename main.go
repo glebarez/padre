@@ -27,7 +27,7 @@ var (
 )
 
 func main() {
-
+	// TODO: remove from release
 	go func() {
 		log.Println(http.ListenAndServe("0.0.0.0:6060", nil))
 	}()
@@ -35,12 +35,24 @@ func main() {
 	var err error
 
 	// initialize printer
-	print := &out.Printer{Stream: stderr}
+	print := &out.Printer{
+		Stream: stderr,
+	}
+
+	// determine terminal width
+	termWidth, err := util.TerminalWidth()
+	if err != nil {
+		// fallback to default
+		print.TerminalWidth = defaultTerminalWidth
+		print.Errorf("Could not determine terminal width. Falling back to %d", defaultTerminalWidth)
+	} else {
+		print.TerminalWidth = termWidth
+	}
 
 	// parse CLI arguments
 	args, errs := parseArgs()
 
-	// check if errors occured during CLI arguments parsing
+	// check if errors occurred during CLI arguments parsing
 	if len(errs.errors) > 0 {
 		for _, e := range errs.errors {
 			print.Error(e)
@@ -50,16 +62,16 @@ func main() {
 		os.Exit(1)
 	}
 
-	// check if warnings occured during CLI arguments parsing
+	// check if warnings occurred during CLI arguments parsing
 	for _, w := range errs.warnings {
 		print.Warning(w)
 	}
 
 	// show welcoming message
-	print.Info("padre is on duty")
+	print.Info("%s is on duty", color.CyanBold("padre"))
 
-	// be excplicit about concurrency
-	print.Info("using concurrency (http connections): %d", *args.Parallel)
+	// be verbose about concurrency
+	print.Info("using concurrency (http connections): %s", color.Green(*args.Parallel))
 
 	// initialize HTTP client
 	client := &client.Client{
@@ -153,7 +165,7 @@ func main() {
 	// set block length if it was auto-detected
 	if *args.BlockLen == 0 {
 		*args.BlockLen = bl
-		print.Success("detected block length: %d", bl)
+		print.Success("detected block length: %s", color.Green(bl))
 	}
 
 	// print mode used
@@ -189,7 +201,7 @@ func main() {
 
 	for i, input := range inputs {
 		// create new status bar for current input
-		prefix := fmt.Sprintf("[%d/%d]", i+1, len(inputs))
+		prefix := color.CyanBold(fmt.Sprintf("[%d/%d]", i+1, len(inputs)))
 		print.SetPrefix(prefix)
 
 		var (
@@ -200,9 +212,7 @@ func main() {
 		// encrypt or decrypt
 		if *args.EncryptMode {
 			// init hacky bar
-			bar = out.CreateHackyBar(
-				args.Encoder, len(exploit.Pkcs7Pad(input, bl))+bl, *args.EncryptMode, args.TermWidth-color.TrueLen(prefix)-1, print,
-			)
+			bar = out.CreateHackyBar(args.Encoder, len(exploit.Pkcs7Pad(input, bl))+bl, *args.EncryptMode, print)
 
 			// provide HTTP client with event-channel, so we can count RPS
 			client.RequestEventChan = bar.ChanReq
@@ -224,9 +234,7 @@ func main() {
 			}
 
 			// init hacky bar
-			bar = out.CreateHackyBar(
-				encoder.NewASCIIencoder(), len(ciphertext)-bl, *args.EncryptMode, args.TermWidth-color.TrueLen(prefix)-1, print,
-			)
+			bar = out.CreateHackyBar(encoder.NewASCIIencoder(), len(ciphertext)-bl, *args.EncryptMode, print)
 
 			// provide HTTP client with event-channel, so we can count RPS
 			client.RequestEventChan = bar.ChanReq
@@ -242,7 +250,7 @@ func main() {
 
 		// warn about output overflow
 		if bar.Overflow && util.IsTerminal(stdout) {
-			print.Errorf("Output was too wide to fit you terminal. Redirect stdout somewhere to get full output")
+			print.Warning("Output was too wide to fit to you terminal. Redirect STDOUT somewhere to get full output")
 		}
 
 	Error:

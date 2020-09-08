@@ -37,7 +37,6 @@ type Args struct {
 	POSTdata            *string
 	ContentType         *string
 	Cookies             []*http.Cookie
-	TermWidth           int
 	EncryptMode         *bool
 	Input               *string
 }
@@ -81,14 +80,6 @@ func parseArgs() (*Args, *argErrors) {
 	}
 	if !(match1 || match2 || match3) {
 		argErrs.flagErrorf("-u, -post, -cookie", "Either URL, POST data or Cookie must contain the $ placeholder")
-	}
-
-	// get terminal width
-	args.TermWidth, err = util.TerminalWidth()
-	if err != nil {
-		// fallback to default
-		argErrs.warningf("Could not determine terminal width. Falling back to %d", defaultTerminalWidth)
-		args.TermWidth = defaultTerminalWidth
 	}
 
 	// Target URL
