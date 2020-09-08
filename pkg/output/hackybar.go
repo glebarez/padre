@@ -9,7 +9,6 @@ import (
 
 	"github.com/glebarez/padre/pkg/color"
 	"github.com/glebarez/padre/pkg/encoder"
-	"github.com/glebarez/padre/pkg/printer"
 )
 
 /*
@@ -44,10 +43,10 @@ type HackyBar struct {
 	autoUpdateFreq time.Duration // interval at which the bar must be updated
 	encryptMode    bool          // whether encrypt mode is used
 	maxWidth       int           // maximum width of bar in characters
-	printer        *printer.Printer
+	printer        *Printer
 }
 
-func CreateHackyBar(encoder encoder.Encoder, outputByteLen int, encryptMode bool, maxWidth int, printer *printer.Printer) *HackyBar {
+func CreateHackyBar(encoder encoder.Encoder, outputByteLen int, encryptMode bool, maxWidth int, printer *Printer) *HackyBar {
 	return &HackyBar{
 		outputData:     []byte{},
 		outputByteLen:  outputByteLen,

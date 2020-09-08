@@ -35,7 +35,7 @@ func main() {
 	var err error
 
 	// initialize printer
-	print := &output.Printer{Stream: stderr}
+	print := &out.Printer{Stream: stderr}
 
 	// parse CLI arguments
 	args, errs := parseArgs()
@@ -201,7 +201,7 @@ func main() {
 		if *args.EncryptMode {
 			// init hacky bar
 			bar = out.CreateHackyBar(
-				args.Encoder, len(input)-bl, *args.EncryptMode, args.TermWidth-color.TrueLen(prefix)-1, print,
+				args.Encoder, len(exploit.Pkcs7Pad(input, bl))+bl, *args.EncryptMode, args.TermWidth-color.TrueLen(prefix)-1, print,
 			)
 
 			// provide HTTP client with event-channel, so we can count RPS
