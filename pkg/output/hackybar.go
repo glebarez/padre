@@ -83,8 +83,8 @@ func (p *HackyBar) listenAndPrint() {
 		// flag: output channel closed (no more data expected)
 		outputChanClosed bool
 
-		// counter for total output bytes recieved
-		outputBytesRecieved int
+		// counter for total output bytes received
+		outputBytesReceived int
 	)
 
 	p.wg.Add(1)
@@ -97,7 +97,7 @@ func (p *HackyBar) listenAndPrint() {
 		case b, ok := <-p.ChanOutput:
 			if ok {
 				p.outputData = append([]byte{b}, p.outputData...) //TODO: optimize this
-				outputBytesRecieved++
+				outputBytesReceived++
 			} else {
 				outputChanClosed = true
 			}
@@ -117,7 +117,7 @@ func (p *HackyBar) listenAndPrint() {
 		}
 
 		// the final status print
-		if outputChanClosed || outputBytesRecieved == p.outputByteLen {
+		if outputChanClosed || outputBytesReceived == p.outputByteLen {
 			// avoid hacky mode
 			// this is because stop can be requested when some error happened,
 			// it that case we don't need to noise the unprocessed part of output with hacky string
@@ -128,7 +128,7 @@ func (p *HackyBar) listenAndPrint() {
 
 		// usual output (still in progress)
 		if time.Since(lastPrint) > p.autoUpdateFreq {
-			statusString := p.buildStatusString(false)
+			statusString := p.buildStatusString(true)
 			p.printer.Printcr(statusString)
 			lastPrint = time.Now()
 		}

@@ -15,7 +15,6 @@ import (
 	"github.com/glebarez/padre/pkg/out"
 	"github.com/glebarez/padre/pkg/printer"
 	"github.com/glebarez/padre/pkg/probe"
-	"github.com/glebarez/padre/pkg/status"
 	"github.com/glebarez/padre/pkg/util"
 
 	_ "net/http/pprof"
@@ -48,7 +47,7 @@ func main() {
 			print.Error(e)
 		}
 
-		print.Println("Run with %s option to see usage help", color.CyanBold("-h"))
+		print.Printlnf("Run with %s option to see usage help", color.CyanBold("-h"))
 		os.Exit(1)
 	}
 
@@ -192,7 +191,7 @@ func main() {
 	for i, input := range inputs {
 		// create new status bar for current input
 		prefix := fmt.Sprintf("[%d/%d]", i+1, len(inputs))
-		print.Stream = status.NewPrefixedWriter(prefix, stderr)
+		print.SetPrefix(prefix)
 
 		var (
 			output []byte
@@ -208,9 +207,10 @@ func main() {
 
 			// provide HTTP client with event-channel, so we can count RPS
 			client.RequestEventChan = bar.ChanReq
-			bar.Start()
 
+			bar.Start()
 			output, err = padre.Encrypt(input, bar.ChanOutput)
+			bar.Stop()
 		} else {
 			if input == "" {
 				err = fmt.Errorf("empty input cipher")
@@ -218,7 +218,8 @@ func main() {
 			}
 
 			// decode input into bytes
-			ciphertext, err := args.Encoder.DecodeString(input)
+			var ciphertext []byte
+			ciphertext, err = args.Encoder.DecodeString(input)
 			if err != nil {
 				goto Error
 			}
@@ -230,10 +231,11 @@ func main() {
 
 			// provide HTTP client with event-channel, so we can count RPS
 			client.RequestEventChan = bar.ChanReq
-			bar.Start()
 
 			// do decryption
+			bar.Start()
 			output, err = padre.Decrypt(ciphertext, bar.ChanOutput)
+			bar.Stop()
 			if err != nil {
 				goto Error
 			}
@@ -245,8 +247,6 @@ func main() {
 		}
 
 	Error:
-		// stop the bar
-		bar.Stop()
 
 		// in case of error, skip to the next input
 		if err != nil {

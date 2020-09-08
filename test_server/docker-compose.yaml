@@ -1,0 +1,10 @@
+version: "2.1"
+
+services:
+    vuln-server:
+        build: .
+        environment: 
+            VULNERABLE: 1
+            # USE_GEVENT: 1
+        ports:
+            - 5000:5000

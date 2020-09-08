@@ -14,28 +14,77 @@ const (
 
 	// CR Carret return
 	CR = "\x1b\x5b2K\r"
+
+	empty = ""
+	space = " "
 )
 
 type Printer struct {
-	Stream io.Writer
-	cr     bool
+	Stream     io.Writer
+	cr         bool
+	prefix     string
+	indent     string
+	lineFeeded bool
 }
 
-func (p *Printer) Print(format string, a ...interface{}) {
+func (p *Printer) print(s string) {
+	fmt.Fprint(p.Stream, s)
+}
+
+func (p *Printer) Print(s string) {
+	// CR debt ?
 	if p.cr {
-		fmt.Fprint(p.Stream, CR)
+		p.print(CR)
 		p.cr = false
 	}
-	fmt.Fprint(p.Stream, fmt.Sprintf(format, a...))
+
+	// prefix logic (if set)
+	if p.prefix != empty {
+		if p.lineFeeded {
+			p.print(p.indent)
+		} else {
+			p.print(p.prefix)
+		}
+	}
+
+	// base print
+	p.print(s)
 }
 
-func (p *Printer) Println(format string, a ...interface{}) {
-	p.Print(format, a...)
+func (p *Printer) SetPrefix(prefix string) {
+	p.prefix = prefix
+	p.indent = strings.Repeat(space, color.TrueLen(prefix))
+	p.lineFeeded = false
+}
+
+func (p *Printer) ResetPrefix() {
+	p.SetPrefix(empty)
+}
+
+func (p *Printer) Println(s string) {
+	p.Print(s)
+	p.print(LF)
+
+	// set flag that line was feeded
+	p.lineFeeded = true
+}
+
+func (p *Printer) Printcr(s string) {
+	p.Print(s)
+	p.cr = true
+}
+
+func (p *Printer) Printf(format string, a ...interface{}) {
+	p.Print(fmt.Sprintf(format, a...))
+}
+
+func (p *Printer) Printlnf(format string, a ...interface{}) {
+	p.Println(fmt.Sprintf(format, a...))
 	p.Print(LF)
 }
 
-func (p *Printer) Printcr(format string, a ...interface{}) {
-	p.Print(format, a...)
+func (p *Printer) Printcrf(format string, a ...interface{}) {
+	p.Printcr(fmt.Sprintf(format, a...))
 	p.cr = true
 }
 
