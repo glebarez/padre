@@ -11,17 +11,14 @@ import (
 	"github.com/glebarez/padre/pkg/encoder"
 )
 
-/*
-Hacky-Bar is the dynamically changing bar in status line.
-The bar reflects current state of output calculation.
-Apart from currently calculated part of output, it also shows yet-unknown part as a random mix of ASCII characters.
-This bar is designed to be fun and fast-changing.
-It also shows HTTP-client performance in real-time, such as: total http requests sent, average RPS
-*/
-
 // output refresh frequency (times/second)
 const updateFreq = 13
 
+// HackyBar is the dynamically changing bar in status line.
+// The bar reflects current state of output calculation.
+// Apart from currently calculated part of output, it also shows yet-unknown part as a random mix of ASCII characters.
+// This bar is designed to be fun and fast-changing.
+// It also shows HTTP-client performance in real-time, such as: total http requests sent, average RPS
 type HackyBar struct {
 	// output info
 	printer       *Printer        // printer to use

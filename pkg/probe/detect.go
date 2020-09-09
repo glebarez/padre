@@ -38,7 +38,11 @@ func DetectPaddingErrorFingerprint(c *client.Client, blockLen int) (PaddingError
 		fpMap[*fp]++
 	}
 
-	// padding oracle must respond with 254 or 255 identical fingerprints
+	// padding oracle typically responds to such probes with following fingerprints:
+	// 1. (254/255) errros + (1/2) successes
+	//		this is the case where all padding errors are presented
+	// 2. (254 or 255) minus (block length) --
+
 	for fp, count := range fpMap {
 		if count == 254 || count == 255 {
 			return &matcherByFingerprint{

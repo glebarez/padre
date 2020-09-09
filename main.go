@@ -134,6 +134,7 @@ func main() {
 			// on last iteration, getting here means confirming failed
 			if i == len(blockLengths)-1 {
 				print.Errorf("padding oracle was not confirmed")
+				makeDetectionHints(args, print)
 				os.Exit(1)
 			}
 		}
