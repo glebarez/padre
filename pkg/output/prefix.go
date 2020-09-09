@@ -21,6 +21,7 @@ type prefix struct {
 	len          int     // length of prefix and indent
 	lineFeeded   bool    // flag: line feeded (=true when first line was already output)
 	outterPrefix *prefix // pointer to outter parent prefix
+	paragraph    bool    // whether this prefix is paragraph
 }
 
 // renders prefix as string
@@ -28,7 +29,7 @@ func (p *prefix) string() string {
 	var s string
 
 	// form own prefix as string
-	if p.lineFeeded {
+	if p.lineFeeded && p.paragraph {
 		s = p.indent
 	} else {
 		s = p.prefix + space
@@ -50,12 +51,13 @@ func (p *prefix) setLF() {
 }
 
 // creates new prefix from string
-func newPrefix(s string, outter *prefix) *prefix {
+func newPrefix(s string, outter *prefix, paragraph bool) *prefix {
 	spaceTaken := color.TrueLen(s) + 1 // prefix + space
 	return &prefix{
 		prefix:       s,
 		indent:       strings.Repeat(space, spaceTaken),
 		len:          spaceTaken,
 		outterPrefix: outter,
+		paragraph:    paragraph,
 	}
 }

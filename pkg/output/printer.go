@@ -43,8 +43,8 @@ func (p *Printer) Print(s string) {
 }
 
 // AddPrefix adds one more prefix to current printer
-func (p *Printer) AddPrefix(s string) {
-	p.prefix = newPrefix(s, p.prefix)
+func (p *Printer) AddPrefix(s string, paragraph bool) {
+	p.prefix = newPrefix(s, p.prefix, paragraph)
 	p.AvailableWidth -= p.prefix.len
 }
 
@@ -81,14 +81,14 @@ func (p *Printer) Printcrf(format string, a ...interface{}) {
 	p.cr = true
 }
 
-func (p *Printer) printWithPrefix(prefix, message string) {
-	p.AddPrefix(prefix)
+func (p *Printer) PrintWithPrefix(prefix, message string) {
+	p.AddPrefix(prefix, false)
 	p.Println(message)
 	p.RemovePrefix()
 }
 
 func (p *Printer) Error(err error) {
-	p.printWithPrefix(color.RedBold("[-]"), color.Red(err))
+	p.PrintWithPrefix(color.RedBold("[-]"), color.Red(err))
 }
 
 func (p *Printer) Errorf(format string, a ...interface{}) {
@@ -96,19 +96,19 @@ func (p *Printer) Errorf(format string, a ...interface{}) {
 }
 
 func (p *Printer) Hint(format string, a ...interface{}) {
-	p.printWithPrefix(color.CyanBold("[hint]"), fmt.Sprintf(format, a...))
+	p.PrintWithPrefix(color.CyanBold("[hint]"), fmt.Sprintf(format, a...))
 }
 
 func (p *Printer) Warning(format string, a ...interface{}) {
-	p.printWithPrefix(color.YellowBold("[!]"), fmt.Sprintf(format, a...))
+	p.PrintWithPrefix(color.YellowBold("[!]"), fmt.Sprintf(format, a...))
 }
 
 func (p *Printer) Success(format string, a ...interface{}) {
-	p.printWithPrefix(color.GreenBold("[+]"), fmt.Sprintf(format, a...))
+	p.PrintWithPrefix(color.GreenBold("[+]"), fmt.Sprintf(format, a...))
 }
 
 func (p *Printer) Info(format string, a ...interface{}) {
-	p.printWithPrefix(color.CyanBold("[i]"), fmt.Sprintf(format, a...))
+	p.PrintWithPrefix(color.CyanBold("[i]"), fmt.Sprintf(format, a...))
 }
 
 func (p *Printer) Action(s string) {

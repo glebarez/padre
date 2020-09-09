@@ -45,6 +45,7 @@ func main() {
 		// fallback to default
 		print.AvailableWidth = defaultTerminalWidth
 		print.Errorf("Could not determine terminal width. Falling back to %d", defaultTerminalWidth)
+		err = nil
 	} else {
 		print.AvailableWidth = termWidth
 	}
@@ -54,10 +55,11 @@ func main() {
 
 	// check if errors occurred during CLI arguments parsing
 	if len(errs.errors) > 0 {
+		print.AddPrefix(color.CyanBold("argument errors:"), true)
 		for _, e := range errs.errors {
 			print.Error(e)
 		}
-
+		print.RemovePrefix()
 		print.Printlnf("Run with %s option to see usage help", color.CyanBold("-h"))
 		os.Exit(1)
 	}
@@ -157,6 +159,7 @@ func main() {
 			// on last iteration, getting here means confirming failed
 			if i == len(blockLengths)-1 {
 				print.Errorf("could not auto-detect padding oracle fingerprint")
+				makeDetectionHints(args, print)
 				os.Exit(1)
 			}
 		}
@@ -202,7 +205,7 @@ func main() {
 	for i, input := range inputs {
 		// create new status bar for current input
 		prefix := color.CyanBold(fmt.Sprintf("[%d/%d]", i+1, len(inputs)))
-		print.AddPrefix(prefix)
+		print.AddPrefix(prefix, true)
 
 		var (
 			output []byte
@@ -259,6 +262,7 @@ func main() {
 		if err != nil {
 			print.Error(err)
 			errCount++
+			makeDetectionHints(args, print)
 			continue
 		}
 
