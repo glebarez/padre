@@ -49,15 +49,13 @@ func (p *prefix) setLF() {
 	}
 }
 
-// creates child prefix for current prefix
-// returns the created child
-func (p *prefix) add(s string) *prefix {
-	child := &prefix{
+// creates new prefix from string
+func newPrefix(s string, outter *prefix) *prefix {
+	spaceTaken := color.TrueLen(s) + 1 // prefix + space
+	return &prefix{
 		prefix:       s,
-		indent:       strings.Repeat(space, color.TrueLen(s)+1),
-		len:          len(s),
-		outterPrefix: p,
+		indent:       strings.Repeat(space, spaceTaken),
+		len:          spaceTaken,
+		outterPrefix: outter,
 	}
-
-	return child
 }

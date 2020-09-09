@@ -155,7 +155,7 @@ func (p *HackyBar) buildStatusString(hacky bool) string {
 		"[%d/%d] | reqs: %d (%d/sec)", len(p.outputData), p.outputByteLen, p.requestsMade, p.rps)
 
 	/* get available space */
-	availableSpace := p.printer.TerminalWidth - len(stats) - 1 // -1 is for the space between output and stats
+	availableSpace := p.printer.AvailableWidth - len(stats) - 1 // -1 is for the space between output and stats
 	if availableSpace < 5 {
 		// a general fool-check
 		panic("Your terminal is to narrow. Use a real one")

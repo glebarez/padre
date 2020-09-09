@@ -15,10 +15,10 @@ const (
 
 // Printer is the printing facility
 type Printer struct {
-	Stream        io.Writer // the ultimate stream to print into
-	TerminalWidth int       // available terminal width
-	cr            bool      // flag: caret return requested on next print (= print on same line please)
-	prefix        prefix    // current  prefix to use
+	Stream         io.Writer // the ultimate stream to print into
+	AvailableWidth int       // available terminal width
+	cr             bool      // flag: caret return requested on next print (= print on same line please)
+	prefix         *prefix   // current  prefix to use
 }
 
 // base internal print, everyone else must build upon this
@@ -34,21 +34,23 @@ func (p *Printer) Print(s string) {
 	}
 
 	// prefix
-	p.print(p.prefix.string())
+	if p.prefix != nil {
+		p.print(p.prefix.string())
+	}
 
 	// print the contents
 	p.print(s)
 }
 
-func (p *Printer) AddPrefix(prefix string) {
-	child := *p.prefix.add(prefix)
-	p.prefix = child
-	p.TerminalWidth -= p.prefix.len
+// AddPrefix adds one more prefix to current printer
+func (p *Printer) AddPrefix(s string) {
+	p.prefix = newPrefix(s, p.prefix)
+	p.AvailableWidth -= p.prefix.len
 }
 
 func (p *Printer) RemovePrefix() {
-	p.TerminalWidth += p.prefix.len
-	p.prefix = *p.prefix.outterPrefix
+	p.AvailableWidth += p.prefix.len
+	p.prefix = p.prefix.outterPrefix
 }
 
 func (p *Printer) Println(s string) {
@@ -56,7 +58,9 @@ func (p *Printer) Println(s string) {
 	p.print(_LF)
 
 	// set flag that line was feeded
-	p.prefix.setLF()
+	if p.prefix != nil {
+		p.prefix.setLF()
+	}
 }
 
 func (p *Printer) Printcr(s string) {

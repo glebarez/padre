@@ -43,10 +43,10 @@ func main() {
 	termWidth, err := util.TerminalWidth()
 	if err != nil {
 		// fallback to default
-		print.TerminalWidth = defaultTerminalWidth
+		print.AvailableWidth = defaultTerminalWidth
 		print.Errorf("Could not determine terminal width. Falling back to %d", defaultTerminalWidth)
 	} else {
-		print.TerminalWidth = termWidth
+		print.AvailableWidth = termWidth
 	}
 
 	// parse CLI arguments
