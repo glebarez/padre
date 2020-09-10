@@ -15,4 +15,4 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v2
     - name: Test
-      run: go test -v ./... -coverprofile=coverage.out && bash <(curl -s https://codecov.io/bash)
+      run: go test -v ./... -coverprofile=coverage.out -covermode=atomic && bash <(curl -s https://codecov.io/bash)
