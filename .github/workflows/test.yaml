@@ -12,14 +12,18 @@ jobs:
       uses: actions/setup-go@v2
       with:
         go-version: ${{ matrix.go-version }}
+
     - name: Checkout code
       uses: actions/checkout@v2
-    - name: Test
+      
+    - name: Restore dependencies cache
       uses: actions/cache@v2
       with:
         path: ~/go/pkg/mod
         key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
         restore-keys: |
           ${{ runner.os }}-go-
+
+    - name: Unit tests
       run: go test -race -v -coverprofile=coverage.out -covermode=atomic ./...
       run: bash <(curl -s https://codecov.io/bash)
