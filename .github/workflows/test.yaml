@@ -25,7 +25,7 @@ jobs:
           ${{ runner.os }}-go-
 
     - name: Unit tests
-      run: go test -race -v -coverprofile=coverage.out -covermode=atomic ./...
+      run: go test -race -coverprofile=coverage.out -covermode=atomic ./...
 
     - name: Upload coverage report to codecov
       run: bash <(curl -s https://codecov.io/bash)
