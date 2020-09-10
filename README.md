@@ -15,7 +15,7 @@ Features:
 
 ## Demo
 
-![demo](demo.gif )
+![demo](assets/demo.gif )
 
 ## Installation/Update
 ```console
