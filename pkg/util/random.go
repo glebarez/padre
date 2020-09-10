@@ -3,6 +3,7 @@ package util
 import (
 	"bytes"
 	"container/ring"
+	"math/rand"
 )
 
 // ring buffer for generating random chunks of bytes
@@ -24,9 +25,12 @@ func init() {
 // RandomSlice generates random slice of bytes with specified length
 func RandomSlice(len int) []byte {
 	buf := bytes.NewBuffer(make([]byte, 0, len))
+
 	for i := 0; i < len; i++ {
 		buf.WriteByte(randomRing.Value.(byte))
-		randomRing = randomRing.Next()
+
+		// randomly move ring
+		randomRing = randomRing.Move(rand.Intn(13))
 	}
 	return buf.Bytes()
 }
