@@ -15,4 +15,11 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v2
     - name: Test
-      run: go test -v ./... -coverprofile=coverage.out -covermode=atomic && bash <(curl -s https://codecov.io/bash)
+      uses: actions/cache@v2
+      with:
+        path: ~/go/pkg/mod
+        key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+        restore-keys: |
+          ${{ runner.os }}-go-
+      run: go test -race -v -coverprofile=coverage.out -covermode=atomic ./...
+      run: bash <(curl -s https://codecov.io/bash)
