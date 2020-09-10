@@ -1,7 +1,6 @@
 package encoder
 
 import (
-	"fmt"
 	"strings"
 
 	"github.com/glebarez/padre/pkg/util"
@@ -25,8 +24,7 @@ func (r *encoderWithReplacer) DecodeString(input string) ([]byte, error) {
 	encoded := r.replacerBeforeDecoding.Replace(input)
 	decoded, err := r.encoder.DecodeString(encoded)
 	if err != nil {
-		return nil, DecodeError(fmt.Sprintf("Decode error: %s", err))
-		// errors.NewErrWithHints(fmt.Errorf("decode error: %w", err), hint.checkEncoding, hint.checkInput)
+		return nil, err
 	}
 	return decoded, nil
 }

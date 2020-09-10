@@ -21,7 +21,31 @@ var (
 )
 
 // make hints for obvious reasons
-func makeDetectionHints(args *Args, p *output.Printer) {
+func makeDetectionHints(args *Args) []string {
+
+	hints := make([]string, 0)
+
+	// block length
+	if *args.BlockLen != 0 {
+		hints = append(hints, omitBlockLen)
+	} else {
+		// error pattern
+		if *args.PaddingErrorPattern != "" {
+			hints = append(hints, omitErrPattern)
+		} else {
+			hints = append(hints, setErrPattern)
+		}
+	}
+
+	// concurrency
+	if *args.Parallel > 10 {
+		hints = append(hints, lowerConnections)
+	}
+
+	return hints
+}
+
+func printHints(p *output.Printer, hints []string) {
 	// hints intro
 	p.AddPrefix(color.CyanBold("[hints]"), true)
 	defer p.RemovePrefix()
@@ -32,20 +56,7 @@ func makeDetectionHints(args *Args, p *output.Printer) {
 	p.AddPrefix(color.CyanBold(`> `), false)
 	defer p.RemovePrefix()
 
-	// block length
-	if *args.BlockLen != 0 {
-		p.Println(omitBlockLen)
-	} else {
-		// error pattern
-		if *args.PaddingErrorPattern != "" {
-			p.Println(omitErrPattern)
-		} else {
-			p.Println(setErrPattern)
-		}
-	}
-
-	// concurrency
-	if *args.Parallel > 10 {
-		p.Println(lowerConnections)
+	for _, h := range hints {
+		p.Println(h)
 	}
 }

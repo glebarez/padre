@@ -134,7 +134,7 @@ func main() {
 			// on last iteration, getting here means confirming failed
 			if i == len(blockLengths)-1 {
 				print.Errorf("padding oracle was not confirmed")
-				makeDetectionHints(args, print)
+				printHints(print, makeDetectionHints(args))
 				os.Exit(1)
 			}
 		}
@@ -160,7 +160,7 @@ func main() {
 			// on last iteration, getting here means confirming failed
 			if i == len(blockLengths)-1 {
 				print.Errorf("could not auto-detect padding oracle fingerprint")
-				makeDetectionHints(args, print)
+				printHints(print, makeDetectionHints(args))
 				os.Exit(1)
 			}
 		}
@@ -211,6 +211,7 @@ func main() {
 		var (
 			output []byte
 			bar    *out.HackyBar
+			hints  []string
 		)
 
 		// encrypt or decrypt
@@ -226,7 +227,7 @@ func main() {
 			bar.Stop()
 		} else {
 			if input == "" {
-				err = fmt.Errorf("empty input cipher")
+				err = fmt.Errorf("empty input")
 				goto Error
 			}
 
@@ -234,6 +235,8 @@ func main() {
 			var ciphertext []byte
 			ciphertext, err = args.Encoder.DecodeString(input)
 			if err != nil {
+				hints = append(hints, checkInput)
+				hints = append(hints, checkEncoding)
 				goto Error
 			}
 
@@ -263,7 +266,9 @@ func main() {
 		if err != nil {
 			print.Error(err)
 			errCount++
-			makeDetectionHints(args, print)
+			if len(hints) > 0 {
+				printHints(print, hints)
+			}
 			continue
 		}
 
