@@ -12,16 +12,12 @@ from encoder import Encoding
 
 @functools.lru_cache()
 def AES_key():
-    # if secret is set in app config, used to produce AES key
-    # otherwise, just generate random one
-    secret = app.config.get("SECRET")
-    if secret is None:
-        return crypto.random_bytes(16)
-    else:
-        return hashlib.md5(secret.encode()).digest()
+    secret = app.config.get("SECRET", "")
+    return hashlib.md5(secret.encode()).digest()
 
 
 app = Flask(__name__)
+
 
 def get_encoding(request):
     # get encoding (defaults to Base64 if not specified)
@@ -96,7 +92,7 @@ def handle_incorrect_padding(exc):
         return exc
 
     # log exception
-    # app.logger.exception(exc)
+    app.logger.exception(exc)
 
     if app.config.get("VULNERABLE"):
         # vulnerable response

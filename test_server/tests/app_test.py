@@ -22,7 +22,7 @@ def http_method(request):
 
 @pytest.fixture
 def secret():
-    return None
+    return "secret"
 
 
 @pytest.fixture
