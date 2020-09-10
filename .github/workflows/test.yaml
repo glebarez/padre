@@ -1,11 +1,11 @@
 on: [push, pull_request]
-name: Build
+name: Test
 jobs:
-  build:
+  test:
     strategy:
       matrix:
-        go-version: [1.14.x, 1.15.x]
-        os: [ubuntu-latest, macos-latest, windows-latest]
+        go-version: [1.14.x]
+        os: [ubuntu-latest]
     runs-on: ${{ matrix.os }}
     steps:
     - name: Install Go
@@ -14,5 +14,5 @@ jobs:
         go-version: ${{ matrix.go-version }}
     - name: Checkout code
       uses: actions/checkout@v2
-    - name: Build
-      run: go build ./...
+    - name: Test
+      run: go test -v ./... -coverprofile=coverage.out && bash <(curl -s https://codecov.io/bash)
