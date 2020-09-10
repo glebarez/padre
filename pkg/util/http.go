@@ -9,6 +9,11 @@ import (
 
 // ParseCookies parses cookies in raw string format into net/http format
 func ParseCookies(cookies string) (cookSlice []*http.Cookie, err error) {
+	// initial string produces emtpty cookies
+	if cookies == "" {
+		return []*http.Cookie{}, nil
+	}
+
 	// strip quotes if any
 	cookies = strings.Trim(cookies, `"'`)
 
@@ -21,7 +26,7 @@ func ParseCookies(cookies string) (cookSlice []*http.Cookie, err error) {
 
 		// split to name and value
 		nameVal := strings.SplitN(c, "=", 2)
-		if len(nameVal) != 2 {
+		if len(nameVal) != 2 || strings.Contains(nameVal[1], "=") {
 			return nil, errors.New("failed to parse cookie")
 		}
 
