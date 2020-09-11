@@ -25,7 +25,7 @@ type Client struct {
 	Cookies  []*http.Cookie
 
 	// placeholder to replace with encoded ciphertext
-	CihperPlaceholder string
+	CipherPlaceholder string
 
 	// encoder that is used to transform binary ciphertext
 	// into plaintext representation. this must comply with
@@ -50,7 +50,7 @@ func (c *Client) DoRequest(ctx context.Context, cipher []byte) (*Response, error
 	cipherEncoded := c.Encoder.EncodeToString(cipher)
 
 	// build URL
-	url, err := url.Parse(replacePlaceholder(c.URL, c.CihperPlaceholder, cipherEncoded))
+	url, err := url.Parse(replacePlaceholder(c.URL, c.CipherPlaceholder, cipherEncoded))
 	if err != nil {
 		return nil, err
 	}
@@ -65,7 +65,7 @@ func (c *Client) DoRequest(ctx context.Context, cipher []byte) (*Response, error
 	if c.POSTdata != "" {
 		// perform data for POST body
 		req.Method = "POST"
-		data := replacePlaceholder(c.POSTdata, c.CihperPlaceholder, cipherEncoded)
+		data := replacePlaceholder(c.POSTdata, c.CipherPlaceholder, cipherEncoded)
 		req.Body = ioutil.NopCloser(strings.NewReader(data))
 
 		// set content type
@@ -78,7 +78,7 @@ func (c *Client) DoRequest(ctx context.Context, cipher []byte) (*Response, error
 			// add cookies
 			req.AddCookie(&http.Cookie{
 				Name:  cookie.Name,
-				Value: replacePlaceholder(cookie.Value, c.CihperPlaceholder, cipherEncoded),
+				Value: replacePlaceholder(cookie.Value, c.CipherPlaceholder, cipherEncoded),
 			})
 		}
 	}

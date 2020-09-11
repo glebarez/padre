@@ -45,7 +45,7 @@ func TestClient_DoRequest(t *testing.T) {
 		URL:               ts.URL + testURI,
 		POSTdata:          "data=$",
 		Cookies:           []*http.Cookie{{Name: "key", Value: "$"}},
-		CihperPlaceholder: "$",
+		CipherPlaceholder: "$",
 		Encoder:           encoder,
 		Concurrency:       1,
 		ContentType:       "cont/type",

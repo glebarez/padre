@@ -85,7 +85,7 @@ func main() {
 		URL:               *args.TargetURL,
 		POSTdata:          *args.POSTdata,
 		Cookies:           args.Cookies,
-		CihperPlaceholder: `$`,
+		CipherPlaceholder: `$`,
 		Encoder:           args.Encoder,
 		Concurrency:       *args.Parallel,
 		ContentType:       *args.ContentType,
