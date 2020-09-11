@@ -50,7 +50,7 @@ func (c *Client) DoRequest(ctx context.Context, cipher []byte) (*Response, error
 	cipherEncoded := c.Encoder.EncodeToString(cipher)
 
 	// build URL
-	url, err := url.Parse(replacePlaceholder(c.URL, cipherEncoded))
+	url, err := url.Parse(replacePlaceholder(c.URL, c.CihperPlaceholder, cipherEncoded))
 	if err != nil {
 		return nil, err
 	}
@@ -65,7 +65,7 @@ func (c *Client) DoRequest(ctx context.Context, cipher []byte) (*Response, error
 	if c.POSTdata != "" {
 		// perform data for POST body
 		req.Method = "POST"
-		data := replacePlaceholder(c.POSTdata, cipherEncoded)
+		data := replacePlaceholder(c.POSTdata, c.CihperPlaceholder, cipherEncoded)
 		req.Body = ioutil.NopCloser(strings.NewReader(data))
 
 		// set content type
@@ -74,11 +74,11 @@ func (c *Client) DoRequest(ctx context.Context, cipher []byte) (*Response, error
 
 	// add cookies if any
 	if c.Cookies != nil {
-		for _, c := range c.Cookies {
+		for _, cookie := range c.Cookies {
 			// add cookies
 			req.AddCookie(&http.Cookie{
-				Name:  c.Name,
-				Value: replacePlaceholder(c.Value, cipherEncoded),
+				Name:  cookie.Name,
+				Value: replacePlaceholder(cookie.Value, c.CihperPlaceholder, cipherEncoded),
 			})
 		}
 	}
@@ -97,7 +97,7 @@ func (c *Client) DoRequest(ctx context.Context, cipher []byte) (*Response, error
 
 	// report about made request to status
 	if c.RequestEventChan != nil {
-		c.RequestEventChan <- 0
+		c.RequestEventChan <- 1
 	}
 
 	// read body
