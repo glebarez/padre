@@ -96,3 +96,19 @@ func TestClient_DoRequest(t *testing.T) {
 	// check total requests reported
 	assert.Equal(totalRequestCount, totalRequestsReceived)
 }
+
+func TestClient_BrokenURL(t *testing.T) {
+	client := &Client{URL: " http://foo.com", Encoder: encoder.NewB64encoder("")}
+	_, err := client.DoRequest(context.Background(), []byte{})
+	assert.Error(t, err)
+}
+
+func TestClient_NotRespondingServer(t *testing.T) {
+	client := &Client{
+		HTTPclient: http.DefaultClient,
+		URL:        "http://localhost:1",
+		Encoder:    encoder.NewB64encoder(""),
+	}
+	_, err := client.DoRequest(context.Background(), []byte{})
+	assert.Error(t, err)
+}
