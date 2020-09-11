@@ -12,6 +12,7 @@ import (
 	"github.com/glebarez/padre/pkg/encoder"
 	"github.com/glebarez/padre/pkg/util"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestClient_SendProbes(t *testing.T) {
@@ -48,17 +49,17 @@ func TestClient_SendProbes(t *testing.T) {
 	// generate random chunk
 	data := util.RandomSlice(20)
 
-	// create channel for probe results
-	chanProbeResult := make(chan *ProbeResult, 1)
-
 	// test every position for a probe
 	for pos := 0; pos < len(data); pos++ {
+		// create channel for probe results
+		chanProbeResult := make(chan *ProbeResult, 1)
+
 		// send probes
 		go client.SendProbes(context.Background(), data, pos, chanProbeResult)
 
 		// get probe result
 		for probeResult := range chanProbeResult {
-			assert.NoError(t, probeResult.Err)
+			require.NoError(t, probeResult.Err)
 
 			// derive expected probe data
 			expectedProbe := copySlice(data)
