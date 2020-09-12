@@ -3,9 +3,10 @@ import os
 from app import app
 
 if __name__ == "__main__":
-    # get VULNERABLE env variable
-    app.config["VULNERABLE"] = os.environ.get("VULNERABLE")
-    app.config["SECRET"] = os.environ.get("SECRET")
+    # get application config from environment
+    for envvar in ["VULBERABLE", "SECRET"]:
+        if envvar in os.environ:
+            app.config[envvar] = os.environ[envvar]
 
     if os.environ.get("USE_GEVENT"):
         from gevent import monkey

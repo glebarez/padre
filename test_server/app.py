@@ -12,7 +12,7 @@ from encoder import Encoding
 
 @functools.lru_cache()
 def AES_key():
-    secret = app.config.get("SECRET", "")
+    secret = app.config.get("SECRET", "default-secret")
     return hashlib.md5(secret.encode()).digest()
 
 
