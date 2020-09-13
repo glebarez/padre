@@ -38,18 +38,49 @@ func DetectPaddingErrorFingerprint(c *client.Client, blockLen int) (PaddingError
 		fpMap[*fp]++
 	}
 
-	// padding oracle typically responds to such probes with following fingerprints:
-	// 1. (254/255) errros + (1/2) successes
-	//		this is the case where all padding errors are presented
-	// 2. (254 or 255) minus (block length) --
+	// padding oracles respond with predictable count of unique fingerprints
+	// following factors must be considered:
+	// a. some padding implmementations 'incorrect' padding from 'errornous' padding
+	// (e.g. if you pad cipher with block length of 16 with values grater than 16)
 
-	for fp, count := range fpMap {
-		if count == 254 || count == 255 {
-			return &matcherByFingerprint{
-				fingerprints: []*ResponseFingerprint{&fp},
-			}, nil
-		}
+	// padre considers following fingerprint counts as indication of padding error
+	patterns := [][]int{
+		{255, 1},
+		{254, 2},
+		{256 - blockLen, blockLen - 1, 1},
+		{256 - blockLen, blockLen - 2, 2},
 	}
 
+	// check if any of count-patterns matches
+patternLoop:
+	for _, pat := range patterns {
+		fingerprints := make([]ResponseFingerprint, 0)
+
+		for fp, count := range fpMap {
+			if inSlice(pat, count) {
+				// do not include fingerprint of non-error response (last position in pattern)
+				if count != pat[len(pat)-1] {
+					fingerprints = append(fingerprints, fp)
+				}
+			} else {
+				continue patternLoop
+			}
+		}
+
+		// if we made it to here, we found a padding oracle
+		// return the matcher
+		return &matcherByFingerprint{
+			fingerprints: fingerprints,
+		}, nil
+	}
 	return nil, nil
+}
+
+func inSlice(slice []int, value int) bool {
+	for _, i := range slice {
+		if value == i {
+			return true
+		}
+	}
+	return false
 }

@@ -7,7 +7,7 @@ import (
 )
 
 type matcherByFingerprint struct {
-	fingerprints []*ResponseFingerprint
+	fingerprints []ResponseFingerprint
 }
 
 func (m *matcherByFingerprint) IsPaddingError(resp *client.Response) (bool, error) {
@@ -18,7 +18,7 @@ func (m *matcherByFingerprint) IsPaddingError(resp *client.Response) (bool, erro
 	}
 
 	for _, fp := range m.fingerprints {
-		if &fp == &respFP {
+		if fp == *respFP {
 			return true, nil
 		}
 	}
