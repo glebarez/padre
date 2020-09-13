@@ -92,7 +92,7 @@ def handle_incorrect_padding(exc):
         return exc
 
     # log exception
-    app.logger.exception(exc)
+    app.logger.error(exc)
 
     if app.config.get("VULNERABLE"):
         # vulnerable response
