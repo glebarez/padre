@@ -4,7 +4,7 @@ from app import app
 
 if __name__ == "__main__":
     # get application config from environment
-    for envvar in ["VULBERABLE", "SECRET"]:
+    for envvar in ["VULNERABLE", "SECRET"]:
         if envvar in os.environ:
             app.config[envvar] = os.environ[envvar]
 
