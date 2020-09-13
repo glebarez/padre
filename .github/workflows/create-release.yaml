@@ -1,8 +1,8 @@
 on:
-    push:
-      # Sequence of patterns matched against refs/tags
-      tags:
-        - 'v*' # Push events to matching v*, i.e. v1.0, v20.15.10
+  push:
+    # Sequence of patterns matched against refs/tags
+    tags:
+      - 'v*' # Push events to matching v*, i.e. v1.0, v20.15.10
 
   name: Create Release
 
@@ -23,7 +23,6 @@ on:
             release_name: Release ${{ github.ref }}
             body: |
               Changes in this Release
-              - First Change
-              - Second Change
+              - Refactoring
             draft: true
             prerelease: false
