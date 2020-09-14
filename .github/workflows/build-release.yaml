@@ -7,6 +7,8 @@ jobs:
   build:
     name: Upload Release Asset
     runs-on: ubuntu-latest
+      env:
+        ARTIFACT: padre-${GITHUB_REF##*/}
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
@@ -14,7 +16,7 @@ jobs:
         run: go build
       - name: Create artifact (Linux)
         if: ${{ runner.os }} == 'Linux'
-        run: zip padre-${GITHUB_REF##*/} README.md padre
+        run: zip $ARTIFACT README.md padre
       - name: Create Release
         id: create_release
         uses: actions/create-release@v1
