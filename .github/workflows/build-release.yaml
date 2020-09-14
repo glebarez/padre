@@ -7,8 +7,8 @@ jobs:
   build:
     name: Upload Release Asset
     runs-on: ubuntu-latest
-      env:
-        ARTIFACT: padre-${GITHUB_REF##*/}
+    env:
+      ARTIFACT: padre-${GITHUB_REF##*/}
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
