@@ -1,6 +1,3 @@
 .vscode/
-test_server/__pycache__/*
-test_server/demoCiphers
-test_server/demoPlains
-test_server/padre
-test_server/venv/
+root.crt
+coverage.out
