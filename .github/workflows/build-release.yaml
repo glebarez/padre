@@ -37,8 +37,8 @@ jobs:
 
       - name: Set compiled binary name
         run: |
-          echo "::set-env name=BINARY_NAME::padre-${{ matrix.GOOS }}-${{ matrix.GOARCH }}${BINARY_EXT}"
-          echo "Binary name set to $BINARY_NAME"
+          echo "::set-env name=BINARY_NAME::padre-${{ matrix.GOOS }}-${{ matrix.GOARCH }}${{ env.BINARY_EXT }}"
+          echo "Binary name set to ${{ env.BINARY_NAME }}"
 
       - name: Checkout code
         uses: actions/checkout@v2
@@ -53,6 +53,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ needs.release.outputs.upload_url }}
-          asset_path: ./${{ env.ARTIFACT }}
-          asset_name: ${{ env.ARTIFACT }}
+          asset_path: ./${{ env.BINARY_NAME }}
+          asset_name: ${{ env.BINARY_NAME }}
           asset_content_type: application/octet-stream
