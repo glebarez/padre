@@ -13,11 +13,9 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
       - name: Build project # This would actually build your project, using zip for an example artifact
-        run: |
-          go build
-          ls -l padre*
+        run: go build
       - name: Create artifact (Linux)
-        run: zip ARTIFACT README.md padre
+        run: zip -v $ARTIFACT README.md padre
       - name: Create Release
         id: create_release
         uses: actions/create-release@v1
