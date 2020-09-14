@@ -24,9 +24,9 @@ jobs:
       matrix:
         GOOS: [linux, windows, darwin]
         GOARCH: [amd64]
-      env:
-        GOOS: ${{ matrix.GOOS }}
-        GOARCH: ${{ matrix.GOARCH }}
+    env:
+      GOOS: ${{ matrix.GOOS }}
+      GOARCH: ${{ matrix.GOARCH }}
     steps:
       - name: Set binary extension
         if: matrix.GOOS == 'windows'
