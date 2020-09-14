@@ -8,12 +8,14 @@ jobs:
     name: Upload Release Asset
     runs-on: ubuntu-latest
     steps:
+      - name: Set artifact name
+        run: echo "::set-env name=ARTIFACT::padre-${GITHUB_REF##*/}.zip"
       - name: Checkout code
         uses: actions/checkout@v2
       - name: Build project # This would actually build your project, using zip for an example artifact
         run: go build
       - name: Create artifact (Linux)
-        run: zip padre-${GITHUB_REF##*/} README.md padre
+        run: zip ARTIFACT README.md padre
       - name: Create Release
         id: create_release
         uses: actions/create-release@v1
@@ -31,6 +33,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps 
-          asset_path: ./padre-${GITHUB_REF##*/}.zip
-          asset_name: padre-${GITHUB_REF##*/}.zip
+          asset_path: ./{{ env.ARTIFACT}}
+          asset_name: {{ env.ARTIFACT}}
           asset_content_type: application/zip
