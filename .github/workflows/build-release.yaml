@@ -21,6 +21,7 @@ jobs:
           prerelease: false
 
   build:
+    needs: release
     runs-on: ubuntu-latest
     strategy:
       matrix:
