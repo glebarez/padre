@@ -14,7 +14,9 @@ func TerminalWidth() (int, error) {
 	}
 	w, _ := termbox.Size()
 	termbox.Close()
-	return w, nil
+	// decrease length by 1 for safety
+	// windows CMD sometimes needs this
+	return w - 1, nil
 }
 
 // IsTerminal checks whether file is a terminal
