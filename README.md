@@ -18,6 +18,9 @@ Features:
 ![demo](assets/demo.gif )
 
 ## Installation/Update
+- Fastest way is to download pre-compiled binary for your OS from [Latest release](https://github.com/glebarez/padre/releases/latest)
+
+- Alternatively, if you have Go installed, build from source:
 ```console
 go get -u github.com/glebarez/padre
 ```
