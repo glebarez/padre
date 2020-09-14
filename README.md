@@ -1,4 +1,4 @@
-![](https://img.shields.io/github/go-mod/go-version/glebarez/padre) ![Build Release](https://github.com/glebarez/padre/workflows/Build%20Release/badge.svg) ![](https://img.shields.io/codecov/c/github/glebarez/padre/development)
+![](https://img.shields.io/github/go-mod/go-version/glebarez/padre) ![Build Release](https://github.com/glebarez/padre/workflows/Build%20Release/badge.svg) ![](https://img.shields.io/codecov/c/github/glebarez/padre/master)
 
 # padre
 ***padre*** is an advanced exploiter for Padding Oracle attacks against CBC mode encryption
