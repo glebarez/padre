@@ -5,6 +5,7 @@ on:
     - 'v*' # Push events to matching v*, i.e. v1.0, v20.15.10
 jobs:
   release:
+    runs-on: ubuntu-latest
     steps:
       - name: Create Release
         id: create_release
