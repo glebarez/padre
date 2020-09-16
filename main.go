@@ -3,7 +3,6 @@ package main
 import (
 	"bufio"
 	"fmt"
-	"log"
 	"net/http"
 	"os"
 
@@ -15,10 +14,6 @@ import (
 	out "github.com/glebarez/padre/pkg/output"
 	"github.com/glebarez/padre/pkg/probe"
 	"github.com/glebarez/padre/pkg/util"
-
-	_ "net/http/pprof"
-
-	_ "net/http"
 )
 
 var (
@@ -27,11 +22,6 @@ var (
 )
 
 func main() {
-	// TODO: remove from release
-	go func() {
-		log.Println(http.ListenAndServe("0.0.0.0:6060", nil))
-	}()
-
 	var err error
 
 	// initialize printer
