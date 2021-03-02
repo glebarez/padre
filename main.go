@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"crypto/tls"
 	"fmt"
 	"net/http"
 	"os"
@@ -71,6 +72,7 @@ func main() {
 			Transport: &http.Transport{
 				MaxConnsPerHost: *args.Parallel,
 				Proxy:           http.ProxyURL(args.ProxyURL),
+				TLSClientConfig: &tls.Config{InsecureSkipVerify: true}, // skip TLS verification
 			}},
 		URL:               *args.TargetURL,
 		POSTdata:          *args.POSTdata,
