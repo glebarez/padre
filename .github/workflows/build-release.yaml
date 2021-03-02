@@ -30,6 +30,7 @@ jobs:
     env:
       GOOS: ${{ matrix.GOOS }}
       GOARCH: ${{ matrix.GOARCH }}
+      ACTIONS_ALLOW_UNSECURE_COMMANDS: 'true'
     steps:
       - name: Set binary extension
         if: matrix.GOOS == 'windows'
