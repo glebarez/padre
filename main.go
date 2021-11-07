@@ -175,6 +175,7 @@ func main() {
 	inputs := make([]string, 0)
 
 	if args.Input == nil {
+		print.Warning("no explicit input passed, expecting input from stdin...")
 		// read inputs from stdin
 		scanner := bufio.NewScanner(os.Stdin)
 		for scanner.Scan() {
@@ -216,8 +217,14 @@ func main() {
 
 			bar.Start()
 			output, err = padre.Encrypt(input, bar.ChanOutput)
+			if err != nil {
+				// at this stage, we already confirmed padding oracle
+				// we suppose the server is blocking connections
+				hints = append(hints, lowerConnections)
+			}
 			bar.Stop()
 		} else {
+			// decrypt mode
 			if input == "" {
 				err = fmt.Errorf("empty input")
 				goto Error
