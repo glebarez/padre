@@ -7,15 +7,21 @@ services:
             VULNERABLE: 1
             USE_GEVENT: 1
         expose:
-            - 5000
+            - "5000"
+        logging:
+            driver: "none"
         healthcheck:
-            test: ["CMD", "curl", "-f", "http://vuln-server:5000/health"]
+            test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+            interval: 2s
+            timeout: 1s
+            retries: 3
 
     padre:
         build: .
         depends_on:
             vuln-server:
                 condition: service_healthy
-        command: >      
-            bash -c './padre -u http://localhost:5000/decrypt?cipher=$$ -enc  123'
+        command: >
+            bash -c "./padre -u http://vuln-server:5000/decrypt?cipher=$$ -enc  http-get | ./padre -u http://vuln-server:5000/decrypt?cipher=$$
+            && ./padre -u http://vuln-server:5000/decrypt -post 'cipher=$$' -enc  http-post | ./padre -u http://vuln-server:5000/decrypt -post 'cipher=$$'"
       
