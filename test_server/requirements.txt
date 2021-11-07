@@ -1,5 +1,5 @@
-Flask==1.1.2
-gevent==20.6.2
-pycryptodome==3.9.8
-pytest==6.0.1
-pytest-cov==2.10.1
+Flask==2.0.2
+gevent==21.8.0
+pycryptodome==3.11.0
+pytest==6.2.5
+pytest-cov==3.0.0
