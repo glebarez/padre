@@ -10,6 +10,10 @@ Configuration is done via setting environment variables
 |USE_GEVENT|Use Flask's built-in Web server|Use gevent's Web server (faster)
 
 ## Run
+#### via Docker Compose
+```console
+docker-compose up
+```
 #### via Docker
 ```console
 docker build -t pador_vuln_server .

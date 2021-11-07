@@ -1,0 +1,21 @@
+version: "2.1"
+
+services:
+    vuln-server:
+        build: ./test_server
+        environment: 
+            VULNERABLE: 1
+            USE_GEVENT: 1
+        expose:
+            - 5000
+        healthcheck:
+            test: ["CMD", "curl", "-f", "http://vuln-server:5000/health"]
+
+    padre:
+        build: .
+        depends_on:
+            vuln-server:
+                condition: service_healthy
+        command: >      
+            bash -c './padre -u http://localhost:5000/decrypt?cipher=$$ -enc  123'
+      
