@@ -2,7 +2,7 @@ package client
 
 import (
 	"context"
-	"io"
+	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -10,10 +10,13 @@ import (
 
 	"github.com/glebarez/padre/pkg/encoder"
 	"github.com/glebarez/padre/pkg/util"
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestClient_DoRequest(t *testing.T) {
+	// require start here
+	require := require.New(t)
+
 	// channel to propagate requests
 	requestChan := make(chan *http.Request, 1)
 
@@ -23,8 +26,12 @@ func TestClient_DoRequest(t *testing.T) {
 		requestChan <- r
 
 		// copy request body into the response
-		_, err := io.Copy(w, r.Body)
-		assert.NoError(t, err)
+		responseBody, err := ioutil.ReadAll(r.Body)
+		require.NoError(err)
+
+		// fill the response writer
+		_, err = w.Write(responseBody)
+		require.NoError(err)
 	}
 
 	// new test server
@@ -58,9 +65,6 @@ func TestClient_DoRequest(t *testing.T) {
 	// counter for received requests
 	totalRequestsReceived := 0
 
-	// asserts start here
-	assert := assert.New(t)
-
 	// send some requests with random data
 	for i := 0; i < totalRequestCount; i++ {
 		// generate random chunk
@@ -69,7 +73,7 @@ func TestClient_DoRequest(t *testing.T) {
 
 		// send
 		response, err := client.DoRequest(context.Background(), data)
-		assert.NoError(err)
+		require.NoError(err)
 
 		// retrieve request event
 		totalRequestsReceived += int(<-requestEventChan)
@@ -78,29 +82,29 @@ func TestClient_DoRequest(t *testing.T) {
 		request := <-requestChan
 
 		// check URL formed properly
-		assert.Equal(replacePlaceholder(testURI, "$", dataEncoded), request.RequestURI)
+		require.Equal(replacePlaceholder(testURI, "$", dataEncoded), request.RequestURI)
 
 		// check Body formed properly
-		assert.Equal(replacePlaceholder(client.POSTdata, "$", dataEncoded), string(response.Body))
+		require.Equal(replacePlaceholder(client.POSTdata, "$", dataEncoded), string(response.Body))
 
 		// check Cookie formed properly
 		cookie, err := request.Cookie("key")
-		assert.NoError(err)
-		assert.Equal(url.QueryEscape(dataEncoded), cookie.Value)
+		require.NoError(err)
+		require.Equal(url.QueryEscape(dataEncoded), cookie.Value)
 
 		// check content type
-		assert.Equal(request.Header.Get("Content-Type"), "cont/type")
+		require.Equal(request.Header.Get("Content-Type"), "cont/type")
 
 	}
 
 	// check total requests reported
-	assert.Equal(totalRequestCount, totalRequestsReceived)
+	require.Equal(totalRequestCount, totalRequestsReceived)
 }
 
 func TestClient_BrokenURL(t *testing.T) {
 	client := &Client{URL: " http://foo.com", Encoder: encoder.NewB64encoder("")}
 	_, err := client.DoRequest(context.Background(), []byte{})
-	assert.Error(t, err)
+	require.Error(t, err)
 }
 
 func TestClient_NotRespondingServer(t *testing.T) {
@@ -110,5 +114,5 @@ func TestClient_NotRespondingServer(t *testing.T) {
 		Encoder:    encoder.NewB64encoder(""),
 	}
 	_, err := client.DoRequest(context.Background(), []byte{})
-	assert.Error(t, err)
+	require.Error(t, err)
 }

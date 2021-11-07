@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/glebarez/padre/pkg/util"
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestReplacer(t *testing.T) {
@@ -36,16 +36,16 @@ func TestReplacer(t *testing.T) {
 
 			// compare results
 			replacer := tt.replFactory(tt.replString)
-			assert.Equal(t, replacer.EncodeToString(byteData), encodedData)
+			require.Equal(t, replacer.EncodeToString(byteData), encodedData)
 
 			// decode back and compare
 			decoded, err := replacer.DecodeString(encodedData)
-			assert.NoError(t, err)
-			assert.Equal(t, decoded, byteData)
+			require.NoError(t, err)
+			require.Equal(t, decoded, byteData)
 
 			// try decoding corrupted string
 			decoded, err = replacer.DecodeString(string(encodedData[:len(encodedData)-1]))
-			assert.Error(t, err)
+			require.Error(t, err)
 		})
 	}
 }

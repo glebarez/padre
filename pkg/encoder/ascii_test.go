@@ -3,7 +3,7 @@ package encoder
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func Test_asciiEncoder_EncodeToString(t *testing.T) {
@@ -39,6 +39,6 @@ func Test_asciiEncoder_DecodeString(t *testing.T) {
 		e.DecodeString("")
 	}
 
-	assert.Panicsf(t, decode, "", "")
+	require.Panicsf(t, decode, "", "")
 
 }

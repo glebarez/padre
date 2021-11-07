@@ -3,7 +3,7 @@ package util
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestRandomSlice(t *testing.T) {
@@ -13,7 +13,7 @@ func TestRandomSlice(t *testing.T) {
 	for i := 0; i < 10; i++ {
 		newRandom := RandomSlice(13)
 		// check uniqness
-		assert.NotContains(t, randoms, newRandom)
+		require.NotContains(t, randoms, newRandom)
 		randoms = append(randoms, newRandom)
 	}
 

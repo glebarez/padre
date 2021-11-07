@@ -11,7 +11,6 @@ import (
 
 	"github.com/glebarez/padre/pkg/encoder"
 	"github.com/glebarez/padre/pkg/util"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -22,7 +21,7 @@ func TestClient_SendProbes(t *testing.T) {
 	handler := func(w http.ResponseWriter, r *http.Request) {
 		// copy request body into the response
 		body, err := ioutil.ReadAll(r.Body)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		reqBodyChan <- body
 		fmt.Fprintln(w, "grabbed")
 	}
@@ -68,13 +67,13 @@ func TestClient_SendProbes(t *testing.T) {
 			// derive made probe data
 			// get request body received by the test server
 			requestBody, err := url.QueryUnescape(string(<-reqBodyChan))
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			madeProbe, err := encoder.DecodeString(requestBody)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			// compare the two
-			assert.Equal(t, expectedProbe, madeProbe)
+			require.Equal(t, expectedProbe, madeProbe)
 		}
 	}
 }
