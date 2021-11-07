@@ -40,7 +40,10 @@ def client(is_vulnerable, secret):
 @pytest.fixture
 def call_route(client, http_method):
     if http_method == "GET":
-        return client.get
+        # apparently werkzeug expects query string to be passed as separated parameter in GET method
+        def get(endpoint, data = None):
+            return client.get(endpoint, query_string=data)
+        return get
     elif http_method == "POST":
         return client.post
     else:
