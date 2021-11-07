@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"os"
 
-	fcolor "github.com/fatih/color"
 	"github.com/glebarez/padre/pkg/client"
 	"github.com/glebarez/padre/pkg/color"
 	"github.com/glebarez/padre/pkg/encoder"
@@ -18,7 +17,7 @@ import (
 )
 
 var (
-	stderr = fcolor.Error
+	stderr = color.Error
 	stdout = os.Stdout
 )
 
@@ -31,12 +30,13 @@ func main() {
 	}
 
 	// determine terminal width
-	termWidth, err := util.TerminalWidth()
+	var termWidth int
+	termWidth, err = util.TerminalWidth()
 	if err != nil {
 		// fallback to default
 		print.AvailableWidth = defaultTerminalWidth
 		print.Errorf("Could not determine terminal width. Falling back to %d", defaultTerminalWidth)
-		err = nil
+		err = nil //nolint
 	} else {
 		print.AvailableWidth = termWidth
 	}
@@ -99,7 +99,7 @@ func main() {
 	var blockLengths []int
 
 	if *args.BlockLen == 0 {
-		// no block length expliitly provided, we need to try all supported lengths
+		// no block length explicitly provided, we need to try all supported lengths
 		blockLengths = []int{8, 16, 32}
 	} else {
 		blockLengths = []int{*args.BlockLen}

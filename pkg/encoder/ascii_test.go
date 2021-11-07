@@ -36,7 +36,7 @@ func Test_asciiEncoder_DecodeString(t *testing.T) {
 	e := &asciiEncoder{}
 
 	decode := func() {
-		e.DecodeString("")
+		e.DecodeString("") //nolint
 	}
 
 	require.Panicsf(t, decode, "", "")

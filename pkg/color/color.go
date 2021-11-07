@@ -10,6 +10,8 @@ import (
 
 var colorMatcher *regexp.Regexp
 
+var Error = color.Error
+
 func init() {
 	// override the standard decision on No-color mode
 	color.NoColor = os.Getenv("TERM") == "dumb" ||

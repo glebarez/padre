@@ -44,7 +44,7 @@ func TestReplacer(t *testing.T) {
 			require.Equal(t, decoded, byteData)
 
 			// try decoding corrupted string
-			decoded, err = replacer.DecodeString(string(encodedData[:len(encodedData)-1]))
+			_, err = replacer.DecodeString(string(encodedData[:len(encodedData)-1]))
 			require.Error(t, err)
 		})
 	}

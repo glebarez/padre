@@ -15,17 +15,17 @@ func newArgErrors() *argErrors {
 }
 
 func (p *argErrors) flagError(flag string, err error) {
-	e := fmt.Errorf("Parameter %s: %w", flag, err)
+	e := fmt.Errorf("parameter %s: %w", flag, err)
 	p.errors = append(p.errors, e)
 }
 
 func (p *argErrors) flagErrorf(flag string, format string, a ...interface{}) {
-	e := fmt.Errorf("Parameter %s: %s", flag, fmt.Sprintf(format, a...))
+	e := fmt.Errorf("parameter %s: %s", flag, fmt.Sprintf(format, a...))
 	p.errors = append(p.errors, e)
 }
 
 func (p *argErrors) flagWarningf(flag string, format string, a ...interface{}) {
-	w := fmt.Sprintf("Parameter %s: %s", flag, fmt.Sprintf(format, a...))
+	w := fmt.Sprintf("parameter %s: %s", flag, fmt.Sprintf(format, a...))
 	p.warnings = append(p.warnings, w)
 }
 

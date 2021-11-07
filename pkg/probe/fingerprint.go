@@ -42,7 +42,7 @@ func countWords(input []byte) int {
 	for _, r := range string(input) {
 		if unicode.IsSpace(r) {
 			inWord = false
-		} else if inWord == false {
+		} else if !inWord {
 			inWord = true
 			count++
 		}

@@ -88,7 +88,7 @@ func parseArgs() (*Args, *argErrors) {
 	} else {
 		_, err = url.Parse(*args.TargetURL)
 		if err != nil {
-			argErrs.flagError("-u", fmt.Errorf("Failed to parse URL: %w", err))
+			argErrs.flagError("-u", fmt.Errorf("failed to parse URL: %w", err))
 		}
 	}
 
@@ -96,7 +96,7 @@ func parseArgs() (*Args, *argErrors) {
 	if *proxyURL != "" {
 		args.ProxyURL, err = url.Parse(*proxyURL)
 		if err != nil {
-			argErrs.flagError("-proxy", fmt.Errorf("Failed to parse URL: %w", err))
+			argErrs.flagError("-proxy", fmt.Errorf("failed to parse URL: %w", err))
 		}
 	}
 
@@ -128,7 +128,7 @@ func parseArgs() (*Args, *argErrors) {
 	if *cookies != "" {
 		args.Cookies, err = util.ParseCookies(*cookies)
 		if err != nil {
-			argErrs.flagError("-cookie", fmt.Errorf("Failed to parse cookies: %s", err))
+			argErrs.flagError("-cookie", fmt.Errorf("failed to parse cookies: %s", err))
 		}
 	}
 

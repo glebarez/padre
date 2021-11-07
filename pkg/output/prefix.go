@@ -7,7 +7,6 @@ import (
 )
 
 const (
-	empty = ``
 	space = ` `
 )
 
