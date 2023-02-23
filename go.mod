@@ -5,7 +5,7 @@ go 1.17
 require (
 	github.com/fatih/color v1.10.0
 	github.com/mattn/go-isatty v0.0.17
-	github.com/nsf/termbox-go v0.0.0-20210114135735-d04385b850e8
+	github.com/nsf/termbox-go v1.1.1
 	github.com/stretchr/testify v1.7.0
 )
 
