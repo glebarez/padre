@@ -22,7 +22,7 @@ Features:
 
 - Alternatively, if you have Go installed, build from source:
 ```console
-go get -u github.com/glebarez/padre
+go install github.com/glebarez/padre@latest
 ```
 
 ## Usage scenario
