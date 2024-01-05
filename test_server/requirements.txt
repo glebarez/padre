@@ -1,5 +1,5 @@
 Flask==2.3.2
 gevent==23.9.1
-pycryptodome==3.11.0
+pycryptodome==3.19.1
 pytest==6.2.5
 pytest-cov==3.0.0
