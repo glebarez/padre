@@ -210,7 +210,7 @@ func main() {
 		// encrypt or decrypt
 		if *args.EncryptMode {
 			// init hacky bar
-			bar = out.CreateHackyBar(args.Encoder, len(exploit.Pkcs7Pad(input, bl))+bl, *args.EncryptMode, print)
+			bar = out.CreateHackyBar(args.Encoder, len(exploit.Pkcs7Pad(exploit.ApplyEscapeCharacters(input), bl))+bl, *args.EncryptMode, print)
 
 			// provide HTTP client with event-channel, so we can count RPS
 			client.RequestEventChan = bar.ChanReq
