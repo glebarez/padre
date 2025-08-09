@@ -64,6 +64,7 @@ bold(Examples:)
 	POST data: cmd(padre -u "http://vulnerable.com/login" -post "token=$" "u7bvLewln6PJ670Gnj3hnE40L0SqG8e6")
 	Cookies: cmd(padre -u "http://vulnerable.com/login$" -cookie "auth=$" "u7bvLewln6PJ670Gnj3hnE40L0SqG8e6")
 	Encrypt token in GET parameter:	cmd(padre -u "http://vulnerable.com/login?token=$" -enc "EncryptMe")
+	Encrypt token in GET parameter with escape characters:	cmd(padre -u "http://vulnerable.com/login?token=$" -enc "Encrypt\r\n\xffM\te")
 `
 
 func init() {
